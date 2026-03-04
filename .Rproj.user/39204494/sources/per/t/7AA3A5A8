@@ -1,19 +1,17 @@
 {
-    "id": "74C5F51B",
-    "path": "~/Library/CloudStorage/Dropbox/Repos/DOAS package/doc/DOAS-tutorial.Rmd",
-    "project_path": "doc/DOAS-tutorial.Rmd",
-    "type": "r_markdown",
-    "hash": "0",
+    "id": "7AA3A5A8",
+    "path": "~/Library/CloudStorage/Dropbox/Repos/DOAS package/doc/DOAS-tutorial.R",
+    "project_path": "doc/DOAS-tutorial.R",
+    "type": "r_source",
+    "hash": "1642146486",
     "contents": "",
     "dirty": false,
-    "created": 1772576058177.0,
+    "created": 1772576053780.0,
     "source_on_save": false,
-    "relative_order": 3,
+    "relative_order": 2,
     "properties": {
         "source_window_id": "",
-        "Source": "Source",
-        "cursorPosition": "35,5",
-        "scrollLine": "34"
+        "Source": "Source"
     },
     "folds": "",
     "lastKnownWriteTime": 1772564919,

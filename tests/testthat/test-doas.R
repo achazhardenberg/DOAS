@@ -40,7 +40,7 @@ test_that("simulate_pop and simulate_survey run without error", {
     expect_true("tot_pop" %in% names(pop))
 
     survey <- simulate_survey(
-        pop$sim_pop,
+        pop$ibex_pop,
         det_p1 = 0.6,
         intra_group_det = 0.9,
         det_group = 0.5,
@@ -49,6 +49,7 @@ test_that("simulate_pop and simulate_survey run without error", {
         surv_areas = 2
     )
     expect_s3_class(survey, "data.frame")
+    expect_equal(nrow(survey), 5)
     do_sector_count <- sum(!is.na(survey$groups_both))
     expect_equal(do_sector_count, 2)
 })
@@ -229,3 +230,4 @@ test_that("doas computes bayesian double observer estimates correctly", {
     # Check boundaries (Bayesian mean should remain mathematically sound above counts)
     expect_true(res_bayes$total_abundance >= sum(data$total_count))
 })
+

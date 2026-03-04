@@ -3,7 +3,7 @@
     "path": "~/Library/CloudStorage/Dropbox/Repos/DOAS package/man/doas_power.Rd",
     "project_path": "man/doas_power.Rd",
     "type": "r_doc",
-    "hash": "0",
+    "hash": "2916881769",
     "contents": "",
     "dirty": false,
     "created": 1772577285482.0,
@@ -21,6 +21,9 @@
     "collab_server": "",
     "source_window": "",
     "last_content_update": 1772617779,
-    "read_only": false,
-    "read_only_alternatives": []
+    "read_only": true,
+    "read_only_alternatives": [
+        "R/doas_power.R",
+        "R/simulation.R"
+    ]
 }
