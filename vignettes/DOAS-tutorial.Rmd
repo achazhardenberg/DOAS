@@ -120,7 +120,7 @@ simulated_population$tot_pop
 survey_data <- simulate_survey(
   sim_pop = simulated_population$sim_pop,
   det_p1 = 0.6, # Observer 1 spots ~60% of groups
-  intra_group_det = 0.9, # Observers typically undercount groups (count 90% of individuals)
+  intra_group_det = 1.0, # Observers count individuals within groups perfectly (no bias)
   det_group = 0.5, # Group size scaling factor
   obs_effect = 0.75, # Observer 2 is 75% as effective as Observer 1
   detvar = 0.2, # Variance in detection across different sectors
@@ -133,8 +133,19 @@ head(survey_data)
 This output is automatically formatted and ready to be plugged into `doas()`!
 
 ```{r run-sim-doas}
-sim_results <- doas(survey_data, method = "hybrid", obs_type = "bayesian")
+# We use 'global' method to pool detection probabilities, which is
+# recommended to avoid small-sample biases on sparse sectors.
+sim_results <- doas(survey_data, method = "global", obs_type = "independent")
 summary(sim_results)
+```
+
+### Advanced: The Bayesian Approach
+
+When observer detections are extremely low, classic estimators can sometimes produce negative estimates or fail. You can pass `obs_type = "bayesian"` to use a rigorous Monte Carlo Beta-Binomial framework that respects natural boundaries (i.e. you cannot estimate fewer animals than you physically saw).
+
+```{r run-sim-doas-bayes}
+bayes_results <- doas(survey_data, method = "global", obs_type = "bayesian")
+summary(bayes_results)
 ```
 
 ---
@@ -154,7 +165,9 @@ power_results <- doas_power(
   pop_size = 1000,
   mean_group = 10,
   tot_areas = 15,
-  method = "hybrid"
+  intra_group_det = 1.0,
+  method = "global",
+  obs_type = "independent"
 )
 
 knitr::kable(power_results, digits = 3)
