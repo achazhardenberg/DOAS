@@ -1,0 +1,3 @@
+counts<-simulate_pop(3000,30,20)
+surv<-simulate_survey(counts,surv_areas=10)
+<-doas(counts,obs_type="bayesian")

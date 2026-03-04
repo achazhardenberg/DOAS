@@ -1,0 +1,26 @@
+{
+    "id": "EAA1CD88",
+    "path": "~/Library/CloudStorage/Dropbox/Repos/DOAS package/tests/testthat/test-doas.R",
+    "project_path": "tests/testthat/test-doas.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": true,
+    "created": 1772577774757.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "232,0",
+        "scrollLine": "225"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1772571409,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1772577829096,
+    "read_only": false,
+    "read_only_alternatives": []
+}

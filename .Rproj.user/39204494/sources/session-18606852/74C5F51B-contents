@@ -1,0 +1,98 @@
+---
+title: "DOAS Tutorial: Analyzing Real Survey Data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{DOAS Tutorial: Analyzing Real Survey Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+The **Double Observer Adjusted Survey (DOAS)** framework reduces the effort required to estimate wild animal abundance by combining standard block counts with a subset of Double Observer (DO) counts. 
+
+While the package provides `simulate_pop()` and `simulate_survey()` for power analysis, this tutorial explains how you can feed your own real-world observation data into the `doas()` function.
+
+## Preparing your Data
+
+Your data needs to be summarized at the **sector level**. Whether you load it from Excel, a CSV file, or a database, the final `data.frame` passed to the `doas` function must contain exactly one row per survey sector, with the following required columns:
+
+1. **`sector_id`**: A unique identifier (numeric or string) for the sector.
+2. **`total_count`**: The raw total number of individuals counted in that sector.
+3. **`detected_groups`**: The total number of unique groups detected in that sector.
+
+Additionally, if a sector received a **Double Observer (DO)** count, you must provide the following columns (otherwise, leave them as `NA` or `0` for standard Block sectors):
+
+4. **`groups_both`**: How many groups were seen by **both** observers.
+5. **`groups_obs1`**: How many groups were seen by **Observer 1 only**.
+6. **`groups_obs2`**: How many groups were seen by **Observer 2 only**.
+7. **`mean_group_size`**: The average size of the groups detected by either observer in that sector.
+
+> **Note:** The `doas()` function automatically detects which sectors are Double Observer surveys and which are Block counts based on the presence of data in these four DO columns.
+
+### Example Data Frame Construction
+
+Let's imagine you surveyed 6 valleys. You did a standard block count in 4 of them, but you deployed two independent observers in 2 of the valleys.
+
+You can create your dataframe in R like this:
+
+```{r setup}
+library(DOAS)
+
+my_survey_data <- data.frame(
+  sector_id = c("Valley_A", "Valley_B", "Valley_C", "Valley_D", "Valley_E", "Valley_F"),
+  
+  # Total animals seen by anyone in the sector
+  total_count = c(55, 30, 80, 100, 20, 0),
+  
+  # Total unique groups seen
+  detected_groups = c(8, 5, 12, 10, 2, 0),
+  
+  # Mark-Recapture data for DO sectors
+  groups_both = c(6, 3, NA, NA, NA, NA),
+  groups_obs1 = c(1, 1, NA, NA, NA, NA),
+  groups_obs2 = c(1, 1, NA, NA, NA, NA),
+  
+  # Mean group size in DO sectors (55 animals / 8 groups = 6.875)
+  mean_group_size = c(6.875, 6.0, NA, NA, NA, NA)
+)
+
+print(my_survey_data)
+```
+
+> **Note:** For standard Block-count sectors, the DO specific columns (`groups_both`, `groups_obs1`, `groups_obs2`, `mean_group_size`) are automatically ignored by the algorithm if they are `NA` or `0`. 
+
+## Running the DOAS Estimator
+
+Once your data frame is structured correctly, simply pass it to the `doas()` function. Be default, `doas()` uses the **Hybrid** method, which applies the specific DO estimate to the surveyed DO sectors, and the adjusted-average estimator to the independent Block sectors.
+
+```{r run-estimator}
+# Run the estimator
+results <- doas(my_survey_data)
+
+# Print the comprehensive summary
+summary(results)
+```
+
+## Understanding the Outputs
+
+The `summary()` provides a clean printout of:
+*   **Mean Detection Probability (`p_hat`)**: The estimated probability that a group of animals is detected in your study area.
+*   **Total Abundance**: The final estimated population size.
+*   **Standard Error & 95% CI**: A log-normal confidence interval (Chao, 1987) ensuring the lower bound never drops below the actual number of animals you saw.
+
+For deeper analysis, the return object (`results`) is a list containing the raw sector-by-sector estimates:
+
+```{r sector-estimates}
+# View the sector-level estimates and confidence intervals
+knitr::kable(results$sector_estimates, digits = 2)
+```
+
+By formatting your field data into this simple sector-level summary, the `DOAS` package handles the complex variance propagation and Chapman estimations automatically!

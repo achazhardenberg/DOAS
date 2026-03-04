@@ -1,0 +1,26 @@
+Package: DOAS
+Type: Package
+Title: Double Observer Adjusted Survey Framework
+Version: 0.1.0
+Author:
+    person("Matteo", "Panaccio", email = "author@example.com", role = c("aut", "cre")),
+    person("Alice", "Brambilla", role = "aut"),
+    person("Bruno", "Bassano", role = "aut"),
+    person("Tessa", "Smith", role = "aut"),
+    person("Achaz", "von Hardenberg", role = "aut") 
+Maintainer: Achaz von Hardenberg <author@example.com>
+Description: A framework to improve abundance estimations in mountain ungulates and other gregarious species 
+    combining block counts and double observer surveys with a reduced effort.
+License: GPL (>= 3)
+Encoding: UTF-8
+Imports: 
+    purrr,
+    scales,
+    truncnorm
+RoxygenNote: 7.3.3
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr

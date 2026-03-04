@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>DOAS Tutorial: Analyzing Real Survey Data and Running Simulations</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">DOAS Tutorial: Analyzing Real Survey Data
+and Running Simulations</h1>
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>The <strong>Double Observer Adjusted Survey (DOAS)</strong> framework
+reduces the effort required to estimate wild animal abundance by
+combining standard block counts with a subset of Double Observer (DO)
+counts.</p>
+<p>This tutorial covers the complete workflow of the <code>DOAS</code>
+package. You will learn how to: 1. <strong>Analyze real survey
+data</strong> using the <code>doas()</code> function. 2.
+<strong>Simulate animal populations and surveys</strong> using
+<code>simulate_pop()</code> and <code>simulate_survey()</code>. 3.
+<strong>Run power analyses</strong> using <code>doas_power()</code> to
+plan your field sampling efforts. 4. <strong>Understand the underlying
+base estimators</strong>.</p>
+<hr />
+</div>
+<div id="analyzing-survey-data-doas" class="section level2">
+<h2>1. Analyzing Survey Data (<code>doas</code>)</h2>
+<p>Your data needs to be summarized at the <strong>sector
+level</strong>. The final <code>data.frame</code> passed to the
+<code>doas</code> function must contain exactly one row per survey
+sector.</p>
+<div id="required-columns" class="section level3">
+<h3>Required Columns:</h3>
+<ol style="list-style-type: decimal">
+<li><strong><code>sector_id</code></strong>: A unique identifier for the
+sector.</li>
+<li><strong><code>total_count</code></strong>: The raw total number of
+individuals counted in that sector.</li>
+<li><strong><code>detected_groups</code></strong>: The total number of
+unique groups detected in that sector.</li>
+</ol>
+</div>
+<div id="double-observer-do-columns-optional" class="section level3">
+<h3>Double Observer (DO) Columns (Optional):</h3>
+<p>For sectors that received a Double Observer survey, provide the
+following columns (leave them as <code>NA</code> for standard Block
+sectors): 4. <strong><code>groups_both</code></strong>: How many groups
+were seen by <strong>both</strong> observers. 5.
+<strong><code>groups_obs1</code></strong>: How many groups were seen by
+<strong>Observer 1 only</strong>. 6.
+<strong><code>groups_obs2</code></strong>: How many groups were seen by
+<strong>Observer 2 only</strong>.</p>
+<blockquote>
+<p><strong>Note:</strong> The <code>doas()</code> function automatically
+calculates the mean group size internally
+(<code>total_count / detected_groups</code>). You do not need to provide
+it.</p>
+</blockquote>
+</div>
+<div id="example-data" class="section level3">
+<h3>Example Data</h3>
+<p>Let’s imagine you surveyed 6 valleys. You did a standard block count
+in 4 of them, but you deployed two independent observers in 2 of the
+valleys.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(DOAS)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>my_survey_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="at">sector_id =</span> <span class="fu">c</span>(<span class="st">&quot;Valley_A&quot;</span>, <span class="st">&quot;Valley_B&quot;</span>, <span class="st">&quot;Valley_C&quot;</span>, <span class="st">&quot;Valley_D&quot;</span>, <span class="st">&quot;Valley_E&quot;</span>, <span class="st">&quot;Valley_F&quot;</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="co"># Total animals seen by anyone in the sector</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  <span class="at">total_count =</span> <span class="fu">c</span>(<span class="dv">55</span>, <span class="dv">30</span>, <span class="dv">80</span>, <span class="dv">100</span>, <span class="dv">20</span>, <span class="dv">0</span>),</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  <span class="co"># Total unique groups seen</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  <span class="at">detected_groups =</span> <span class="fu">c</span>(<span class="dv">8</span>, <span class="dv">5</span>, <span class="dv">12</span>, <span class="dv">10</span>, <span class="dv">2</span>, <span class="dv">0</span>),</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>  <span class="co"># Mark-Recapture data for DO sectors</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  <span class="at">groups_both =</span> <span class="fu">c</span>(<span class="dv">6</span>, <span class="dv">3</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>),</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>  <span class="at">groups_obs1 =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>),</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>  <span class="at">groups_obs2 =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>)</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="fu">print</span>(my_survey_data)</span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt;   sector_id total_count detected_groups groups_both groups_obs1 groups_obs2</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt; 1  Valley_A          55               8           6           1           1</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co">#&gt; 2  Valley_B          30               5           3           1           1</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="co">#&gt; 3  Valley_C          80              12          NA          NA          NA</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="co">#&gt; 4  Valley_D         100              10          NA          NA          NA</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co">#&gt; 5  Valley_E          20               2          NA          NA          NA</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="co">#&gt; 6  Valley_F           0               0          NA          NA          NA</span></span></code></pre></div>
+</div>
+<div id="running-the-estimator" class="section level3">
+<h3>Running the Estimator</h3>
+<p>You can run the estimation using different observer assumptions
+(<code>obs_type</code>): - <code>&quot;independent&quot;</code>: Default. Assumes
+observers scanned independently (uses Chapman estimator). -
+<code>&quot;dependent&quot;</code>: Assumes Observer 1 points out animals to
+Observer 2, and Observer 2 only records what Observer 1 missed (Zippin
+estimator). - <code>&quot;bayesian&quot;</code>: Uses Monte Carlo simulation from
+Conjugate Beta-Binomial posteriors.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Default Hybrid estimation with Independent observers</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">doas</span>(my_survey_data, <span class="at">method =</span> <span class="st">&quot;hybrid&quot;</span>, <span class="at">obs_type =</span> <span class="st">&quot;independent&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">summary</span>(results)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;   Double Observer Adjusted Survey (DOAS) Estimation  </span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; ====================================================</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; Method used: Hybrid</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; Total sectors surveyed: 6</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; Double Observer (DO) sectors: 2 (Independent)</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; Mean detection probability (p_hat): 0.967 (Var = 0.00023)</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; Estimated Total Abundance: 294.2</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; Standard Error: 4.8</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; 95% Log-normal CI: [288.5 - 309.2]</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; ----------------------------------------------------</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; Sector-level Estimates:</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt;  sector_id total_count est_groups est_abundance se_abundance ci_lower ci_upper</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt;   Valley_A          55       8.14         55.98         2.78    55.05    72.94</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt;   Valley_B          30       5.25         31.50         3.35    30.11    50.68</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt;   Valley_C          80      12.40         82.69         1.29    81.11    86.55</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt;   Valley_D         100      10.34        103.37         1.61   101.39   108.18</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt;   Valley_E          20       2.07         20.67         0.32    20.28    21.64</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">#&gt;   Valley_F           0       0.00          0.00         0.00     0.00     0.00</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="co">#&gt; ----------------------------------------------------</span></span></code></pre></div>
+<p>You can view the specific sector-by-sector estimates directly from
+the results object:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(results<span class="sc">$</span>sector_estimates, <span class="at">digits =</span> <span class="dv">2</span>)</span></code></pre></div>
+<table>
+<colgroup>
+<col width="12%" />
+<col width="15%" />
+<col width="14%" />
+<col width="17%" />
+<col width="16%" />
+<col width="11%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">sector_id</th>
+<th align="right">total_count</th>
+<th align="right">est_groups</th>
+<th align="right">est_abundance</th>
+<th align="right">se_abundance</th>
+<th align="right">ci_lower</th>
+<th align="right">ci_upper</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Valley_A</td>
+<td align="right">55</td>
+<td align="right">8.14</td>
+<td align="right">55.98</td>
+<td align="right">2.78</td>
+<td align="right">55.05</td>
+<td align="right">72.94</td>
+</tr>
+<tr class="even">
+<td align="left">Valley_B</td>
+<td align="right">30</td>
+<td align="right">5.25</td>
+<td align="right">31.50</td>
+<td align="right">3.35</td>
+<td align="right">30.11</td>
+<td align="right">50.68</td>
+</tr>
+<tr class="odd">
+<td align="left">Valley_C</td>
+<td align="right">80</td>
+<td align="right">12.40</td>
+<td align="right">82.69</td>
+<td align="right">1.29</td>
+<td align="right">81.11</td>
+<td align="right">86.55</td>
+</tr>
+<tr class="even">
+<td align="left">Valley_D</td>
+<td align="right">100</td>
+<td align="right">10.34</td>
+<td align="right">103.37</td>
+<td align="right">1.61</td>
+<td align="right">101.39</td>
+<td align="right">108.18</td>
+</tr>
+<tr class="odd">
+<td align="left">Valley_E</td>
+<td align="right">20</td>
+<td align="right">2.07</td>
+<td align="right">20.67</td>
+<td align="right">0.32</td>
+<td align="right">20.28</td>
+<td align="right">21.64</td>
+</tr>
+<tr class="even">
+<td align="left">Valley_F</td>
+<td align="right">0</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div>
+</div>
+<div id="simulating-populations-and-surveys" class="section level2">
+<h2>2. Simulating Populations and Surveys</h2>
+<p>To test the method or plan study designs, the DOAS package includes
+functions to simulate realistic cluster-sampled populations.</p>
+<div id="simulating-a-population-simulate_pop" class="section level3">
+<h3>Simulating a Population (<code>simulate_pop</code>)</h3>
+<p><code>simulate_pop()</code> distributes a simulated population into
+logical sectors and groups.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co"># Simulate ~1000 individuals, mean group size 10, spread across 15 sectors</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>simulated_population <span class="ot">&lt;-</span> <span class="fu">simulate_pop</span>(</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">pop_size =</span> <span class="dv">1000</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">mean_group =</span> <span class="dv">10</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  <span class="at">tot_areas =</span> <span class="dv">15</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co"># Total simulated individuals</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>simulated_population<span class="sc">$</span>tot_pop</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; [1] 1043</span></span></code></pre></div>
+</div>
+<div id="simulating-a-doas-survey-simulate_survey" class="section level3">
+<h3>Simulating a DOAS Survey (<code>simulate_survey</code>)</h3>
+<p><code>simulate_survey()</code> takes the “true” population and
+applies detection probabilities to mimic field data collection.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Simulate field observers surveying the population</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>survey_data <span class="ot">&lt;-</span> <span class="fu">simulate_survey</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">sim_pop =</span> simulated_population<span class="sc">$</span>sim_pop,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">det_p1 =</span> <span class="fl">0.6</span>, <span class="co"># Observer 1 spots ~60% of groups</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">intra_group_det =</span> <span class="fl">0.9</span>, <span class="co"># Observers typically undercount groups (count 90% of individuals)</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">det_group =</span> <span class="fl">0.5</span>, <span class="co"># Group size scaling factor</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">obs_effect =</span> <span class="fl">0.75</span>, <span class="co"># Observer 2 is 75% as effective as Observer 1</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="at">detvar =</span> <span class="fl">0.2</span>, <span class="co"># Variance in detection across different sectors</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="at">surv_areas =</span> <span class="dv">5</span> <span class="co"># Out of 15 areas, 5 will get Double Observers</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>)</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="fu">head</span>(survey_data)</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;   sector_id total_count groups_both groups_obs1 groups_obs2 detected_groups</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt; 1         1          45           1           6           1               8</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; 2         2          52           1           1           1               3</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt; 3         3          25          NA          NA          NA               4</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt; 4         4          30          NA          NA          NA               3</span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#&gt; 5         5           8           0           1           0               1</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="co">#&gt; 6         6          11          NA          NA          NA               1</span></span></code></pre></div>
+<p>This output is automatically formatted and ready to be plugged into
+<code>doas()</code>!</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>sim_results <span class="ot">&lt;-</span> <span class="fu">doas</span>(survey_data, <span class="at">method =</span> <span class="st">&quot;hybrid&quot;</span>, <span class="at">obs_type =</span> <span class="st">&quot;bayesian&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">summary</span>(sim_results)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;   Double Observer Adjusted Survey (DOAS) Estimation  </span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; ====================================================</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; Method used: Hybrid</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; Total sectors surveyed: 15</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; Double Observer (DO) sectors: 5 (Bayesian)</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; Mean detection probability (p_hat): 0.820 (Var = 0.00087)</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; Estimated Total Abundance: 601.6</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; Standard Error: 19.7</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt; 95% Log-normal CI: [569.6 - 647.9]</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; ----------------------------------------------------</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; Sector-level Estimates:</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;  sector_id total_count est_groups est_abundance se_abundance ci_lower ci_upper</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt;          1          45       9.41         52.90         6.52    46.92    77.46</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt;          2          52       3.67         63.68        13.02    54.01   120.00</span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt;          3          25       4.88         30.50         1.10    28.74    33.11</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt;          4          30       3.66         36.61         1.32    34.49    39.73</span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt;          5           8       1.41         11.31         5.10     8.38    36.76</span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="co">#&gt;          6          11       1.22         13.42         0.48    12.64    14.57</span></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="co">#&gt;          7          30       3.66         36.61         1.32    34.49    39.73</span></span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt;          8          36       3.66         43.93         1.58    41.38    47.67</span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt;          9          51       1.22         62.23         2.24    58.63    67.54</span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt;         10          15       2.44         18.30         0.66    17.24    19.86</span></span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="co">#&gt;         11          55       7.06         64.72         8.13    57.33    95.49</span></span>
+<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="co">#&gt;         12          46       4.58         52.67         8.12    47.03    89.24</span></span>
+<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="co">#&gt;         13          41       4.88         50.03         1.80    47.13    54.29</span></span>
+<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="co">#&gt;         14          28       3.66         34.17         1.23    32.19    37.08</span></span>
+<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="co">#&gt;         15          25       1.22         30.50         1.10    28.74    33.11</span></span>
+<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="co">#&gt; ----------------------------------------------------</span></span></code></pre></div>
+<hr />
+</div>
+</div>
+<div id="power-analysis-doas_power" class="section level2">
+<h2>3. Power Analysis (<code>doas_power</code>)</h2>
+<p>If you are planning a field season, you can use
+<code>doas_power()</code> to understand how many DO surveys you need to
+achieve reliable confidence intervals and minimize bias.</p>
+<p><code>doas_power()</code> runs multiple simulated surveys under the
+hood and reports metrics like Relative Bias, Root Mean Squared Error
+(RMSE), and 95% CI Coverage.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Run a quick power analysis testing 2 vs 5 DO sectors</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co"># Note: For real power analysis, increase n_sims (e.g., 500)</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>power_results <span class="ot">&lt;-</span> <span class="fu">doas_power</span>(</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">n_sims =</span> <span class="dv">10</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="at">surv_areas =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">5</span>), <span class="co"># Test scenarios: 2 DO sectors vs 5 DO sectors</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>  <span class="at">pop_size =</span> <span class="dv">1000</span>,</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="at">mean_group =</span> <span class="dv">10</span>,</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="at">tot_areas =</span> <span class="dv">15</span>,</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;hybrid&quot;</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>)</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(power_results, <span class="at">digits =</span> <span class="dv">3</span>)</span></code></pre></div>
+<table style="width:100%;">
+<colgroup>
+<col width="13%" />
+<col width="19%" />
+<col width="14%" />
+<col width="13%" />
+<col width="10%" />
+<col width="9%" />
+<col width="10%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">surv_areas</th>
+<th align="right">successful_sims</th>
+<th align="right">mean_true_N</th>
+<th align="right">mean_est_N</th>
+<th align="right">rel_bias</th>
+<th align="right">rmse</th>
+<th align="right">coverage</th>
+<th align="right">mean_cv</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2</td>
+<td align="right">10</td>
+<td align="right">983.9</td>
+<td align="right">535.848</td>
+<td align="right">-0.455</td>
+<td align="right">461.492</td>
+<td align="right">0</td>
+<td align="right">0.059</td>
+</tr>
+<tr class="even">
+<td align="right">5</td>
+<td align="right">10</td>
+<td align="right">987.2</td>
+<td align="right">557.685</td>
+<td align="right">-0.435</td>
+<td align="right">435.267</td>
+<td align="right">0</td>
+<td align="right">0.058</td>
+</tr>
+</tbody>
+</table>
+<p>Higher effort (more <code>surv_areas</code>) generally yields
+improved CI coverage and lower Coefficient of Variation (CV).</p>
+<hr />
+</div>
+<div id="understanding-base-estimators" class="section level2">
+<h2>4. Understanding Base Estimators</h2>
+<p>The <code>doas()</code> function leverages several group-abundance
+estimators under the hood. For advanced applications, these are exported
+for you to use directly:</p>
+<div id="chapman-estimator-independent-observers" class="section level3">
+<h3>Chapman Estimator (Independent Observers)</h3>
+<p>A bias-adjusted Lincoln-Petersen estimator.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">chapman_estimate</span>(<span class="at">both =</span> <span class="dv">10</span>, <span class="at">obs1_only =</span> <span class="dv">2</span>, <span class="at">obs2_only =</span> <span class="dv">3</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] 15.54545</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">chapman_variance</span>(<span class="at">both =</span> <span class="dv">10</span>, <span class="at">obs1_only =</span> <span class="dv">2</span>, <span class="at">obs2_only =</span> <span class="dv">3</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; [1] 0.7520661</span></span></code></pre></div>
+</div>
+<div id="zippin-estimator-dependent-observers" class="section level3">
+<h3>Zippin Estimator (Dependent Observers)</h3>
+<p>A removal estimator for primary/secondary observer setups.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">dependent_zippin_estimate</span>(<span class="at">both =</span> <span class="dv">10</span>, <span class="at">obs1_only =</span> <span class="dv">2</span>, <span class="at">obs2_only =</span> <span class="dv">3</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt; [1] 16</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">dependent_zippin_variance</span>(<span class="at">both =</span> <span class="dv">10</span>, <span class="at">obs1_only =</span> <span class="dv">2</span>, <span class="at">obs2_only =</span> <span class="dv">3</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; [1] 2.962963</span></span></code></pre></div>
+</div>
+<div id="bayesian-conjugate-estimator" class="section level3">
+<h3>Bayesian Conjugate Estimator</h3>
+<p>Uses Monte Carlo simulations to draw from Beta posteriors, naturally
+preventing negative estimates and bounding credible intervals.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>bayesian_res <span class="ot">&lt;-</span> <span class="fu">bayesian_conjugate_estimate</span>(<span class="at">both =</span> <span class="dv">10</span>, <span class="at">obs1_only =</span> <span class="dv">2</span>, <span class="at">obs2_only =</span> <span class="dv">3</span>, <span class="at">iter =</span> <span class="dv">1000</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">c</span>(<span class="at">Mean =</span> bayesian_res<span class="sc">$</span>mean, <span class="at">Variance =</span> bayesian_res<span class="sc">$</span>var)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt;       Mean   Variance </span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 15.6973227  0.2961748</span></span></code></pre></div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,191 @@
+---
+title: "DOAS Tutorial: Analyzing Real Survey Data and Running Simulations"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{DOAS Tutorial: Analyzing Real Survey Data and Running Simulations}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+The **Double Observer Adjusted Survey (DOAS)** framework reduces the effort required to estimate wild animal abundance by combining standard block counts with a subset of Double Observer (DO) counts. 
+
+This tutorial covers the complete workflow of the `DOAS` package. You will learn how to:
+1. **Analyze real survey data** using the `doas()` function.
+2. **Simulate animal populations and surveys** using `simulate_pop()` and `simulate_survey()`.
+3. **Run power analyses** using `doas_power()` to plan your field sampling efforts.
+4. **Understand the underlying base estimators**.
+
+---
+
+## 1. Analyzing Survey Data (`doas`)
+
+Your data needs to be summarized at the **sector level**. The final `data.frame` passed to the `doas` function must contain exactly one row per survey sector.
+
+### Required Columns:
+1. **`sector_id`**: A unique identifier for the sector.
+2. **`total_count`**: The raw total number of individuals counted in that sector.
+3. **`detected_groups`**: The total number of unique groups detected in that sector.
+
+### Double Observer (DO) Columns (Optional):
+For sectors that received a Double Observer survey, provide the following columns (leave them as `NA` for standard Block sectors):
+4. **`groups_both`**: How many groups were seen by **both** observers.
+5. **`groups_obs1`**: How many groups were seen by **Observer 1 only**.
+6. **`groups_obs2`**: How many groups were seen by **Observer 2 only**.
+
+> **Note:** The `doas()` function automatically calculates the mean group size internally (`total_count / detected_groups`). You do not need to provide it.
+
+### Example Data
+
+Let's imagine you surveyed 6 valleys. You did a standard block count in 4 of them, but you deployed two independent observers in 2 of the valleys.
+
+```{r setup-real-data}
+library(DOAS)
+
+my_survey_data <- data.frame(
+  sector_id = c("Valley_A", "Valley_B", "Valley_C", "Valley_D", "Valley_E", "Valley_F"),
+
+  # Total animals seen by anyone in the sector
+  total_count = c(55, 30, 80, 100, 20, 0),
+
+  # Total unique groups seen
+  detected_groups = c(8, 5, 12, 10, 2, 0),
+
+  # Mark-Recapture data for DO sectors
+  groups_both = c(6, 3, NA, NA, NA, NA),
+  groups_obs1 = c(1, 1, NA, NA, NA, NA),
+  groups_obs2 = c(1, 1, NA, NA, NA, NA)
+)
+
+print(my_survey_data)
+```
+
+### Running the Estimator
+
+You can run the estimation using different observer assumptions (`obs_type`):
+- `"independent"`: Default. Assumes observers scanned independently (uses Chapman estimator).
+- `"dependent"`: Assumes Observer 1 points out animals to Observer 2, and Observer 2 only records what Observer 1 missed (Zippin estimator).
+- `"bayesian"`: Uses Monte Carlo simulation from Conjugate Beta-Binomial posteriors.
+
+```{r run-doas}
+# Default Hybrid estimation with Independent observers
+results <- doas(my_survey_data, method = "hybrid", obs_type = "independent")
+
+summary(results)
+```
+
+You can view the specific sector-by-sector estimates directly from the results object:
+
+```{r view-sectors}
+knitr::kable(results$sector_estimates, digits = 2)
+```
+
+---
+
+## 2. Simulating Populations and Surveys
+
+To test the method or plan study designs, the DOAS package includes functions to simulate realistic cluster-sampled populations.
+
+### Simulating a Population (`simulate_pop`)
+
+`simulate_pop()` distributes a simulated population into logical sectors and groups.
+
+```{r sim_pop}
+set.seed(42)
+# Simulate ~1000 individuals, mean group size 10, spread across 15 sectors
+simulated_population <- simulate_pop(
+  pop_size = 1000,
+  mean_group = 10,
+  tot_areas = 15
+)
+
+# Total simulated individuals
+simulated_population$tot_pop
+```
+
+### Simulating a DOAS Survey (`simulate_survey`)
+
+`simulate_survey()` takes the "true" population and applies detection probabilities to mimic field data collection.
+
+```{r sim_survey}
+# Simulate field observers surveying the population
+survey_data <- simulate_survey(
+  sim_pop = simulated_population$sim_pop,
+  det_p1 = 0.6, # Observer 1 spots ~60% of groups
+  intra_group_det = 0.9, # Observers typically undercount groups (count 90% of individuals)
+  det_group = 0.5, # Group size scaling factor
+  obs_effect = 0.75, # Observer 2 is 75% as effective as Observer 1
+  detvar = 0.2, # Variance in detection across different sectors
+  surv_areas = 5 # Out of 15 areas, 5 will get Double Observers
+)
+
+head(survey_data)
+```
+
+This output is automatically formatted and ready to be plugged into `doas()`!
+
+```{r run-sim-doas}
+sim_results <- doas(survey_data, method = "hybrid", obs_type = "bayesian")
+summary(sim_results)
+```
+
+---
+
+## 3. Power Analysis (`doas_power`)
+
+If you are planning a field season, you can use `doas_power()` to understand how many DO surveys you need to achieve reliable confidence intervals and minimize bias.
+
+`doas_power()` runs multiple simulated surveys under the hood and reports metrics like Relative Bias, Root Mean Squared Error (RMSE), and 95% CI Coverage.
+
+```{r doas_power}
+# Run a quick power analysis testing 2 vs 5 DO sectors
+# Note: For real power analysis, increase n_sims (e.g., 500)
+power_results <- doas_power(
+  n_sims = 10,
+  surv_areas = c(2, 5), # Test scenarios: 2 DO sectors vs 5 DO sectors
+  pop_size = 1000,
+  mean_group = 10,
+  tot_areas = 15,
+  method = "hybrid"
+)
+
+knitr::kable(power_results, digits = 3)
+```
+
+Higher effort (more `surv_areas`) generally yields improved CI coverage and lower Coefficient of Variation (CV).
+
+---
+
+## 4. Understanding Base Estimators
+
+The `doas()` function leverages several group-abundance estimators under the hood. For advanced applications, these are exported for you to use directly:
+
+### Chapman Estimator (Independent Observers)
+A bias-adjusted Lincoln-Petersen estimator.
+```{r base-chapman}
+chapman_estimate(both = 10, obs1_only = 2, obs2_only = 3)
+chapman_variance(both = 10, obs1_only = 2, obs2_only = 3)
+```
+
+### Zippin Estimator (Dependent Observers)
+A removal estimator for primary/secondary observer setups.
+```{r base-zippin}
+dependent_zippin_estimate(both = 10, obs1_only = 2, obs2_only = 3)
+dependent_zippin_variance(both = 10, obs1_only = 2, obs2_only = 3)
+```
+
+### Bayesian Conjugate Estimator
+Uses Monte Carlo simulations to draw from Beta posteriors, naturally preventing negative estimates and bounding credible intervals.
+```{r base-bayesian}
+set.seed(123)
+bayesian_res <- bayesian_conjugate_estimate(both = 10, obs1_only = 2, obs2_only = 3, iter = 1000)
+c(Mean = bayesian_res$mean, Variance = bayesian_res$var)
+```

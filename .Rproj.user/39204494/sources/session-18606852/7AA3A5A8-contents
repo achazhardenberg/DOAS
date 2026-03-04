@@ -1,0 +1,40 @@
+## ----include = FALSE----------------------------------------------------------
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+## ----setup--------------------------------------------------------------------
+library(DOAS)
+
+my_survey_data <- data.frame(
+  sector_id = c("Valley_A", "Valley_B", "Valley_C", "Valley_D", "Valley_E", "Valley_F"),
+  
+  # Total animals seen by anyone in the sector
+  total_count = c(55, 30, 80, 100, 20, 0),
+  
+  # Total unique groups seen
+  detected_groups = c(8, 5, 12, 10, 2, 0),
+  
+  # Mark-Recapture data for DO sectors
+  groups_both = c(6, 3, NA, NA, NA, NA),
+  groups_obs1 = c(1, 1, NA, NA, NA, NA),
+  groups_obs2 = c(1, 1, NA, NA, NA, NA),
+  
+  # Mean group size in DO sectors (55 animals / 8 groups = 6.875)
+  mean_group_size = c(6.875, 6.0, NA, NA, NA, NA)
+)
+
+print(my_survey_data)
+
+## ----run-estimator------------------------------------------------------------
+# Run the estimator
+results <- doas(my_survey_data)
+
+# Print the comprehensive summary
+summary(results)
+
+## ----sector-estimates---------------------------------------------------------
+# View the sector-level estimates and confidence intervals
+knitr::kable(results$sector_estimates, digits = 2)
+
