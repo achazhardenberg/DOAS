@@ -1,4 +1,4 @@
-# DOAS: Double Observer Adjusted Survey 🔭
+# DOAS: Double Observer Adjusted Survey 
 
 <!-- badges: start -->
 <!-- badges: end -->
