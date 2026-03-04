@@ -68,4 +68,4 @@ vignette("DOAS-tutorial", package = "DOAS")
 
 The methodology behind the DOAS package estimators, simulations, and the original "Double Observer Adjusted Survey" framework was developed and detailed in the following publication. If you use this package in your research, please cite:
 
-> **Panaccio M. et al.** (Year). *Title of the Panaccio paper.* Journal Name, Volume(Issue), Pages. DOI: [insert-doi-here]
+> Panaccio, M., Brambilla, A., Bassano, B., Smith, T., & Von Hardenberg, A. (2024). A new double observer‐based census framework to improve abundance estimations in mountain ungulates and other gregarious species with a reduced effort. *Ecological Solutions and Evidence*, 5(4), e12405. DOI: https://doi.org/10.1002/2688-8319.12405
