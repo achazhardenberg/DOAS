@@ -292,14 +292,23 @@ doas <- function(
             obs2_only = sum(do_data$groups_obs2, na.rm = TRUE)
         )
     } else if (obs_type == "bayesian") {
-        # For bayesian, we could pool the posteriors, but running one aggregate model is preferred
-        bayes_res <- bayesian_conjugate_estimate(
-            both = sum(do_data$groups_both, na.rm = TRUE),
-            obs1_only = sum(do_data$groups_obs1, na.rm = TRUE),
-            obs2_only = sum(do_data$groups_obs2, na.rm = TRUE),
-            iter = 10000
-        )
-        total_G <- bayes_res$mean
+        # For the global pooled Bayesian estimate, we need to estimate G_total from
+        # the PRIMARY observer's detection probability only. This is because block
+        # sectors are surveyed by a single observer, so mean_p_hat must reflect
+        # the probability that Observer 1 detects a group (not the team probability).
+        #
+        # We estimate p1 directly using a Beta posterior:
+        #   p1 successes = groups_both + groups_obs1 (seen by Obs1)
+        #   p1 failures  = groups_obs2 (missed by Obs1, caught by Obs2)
+        b_sum <- sum(do_data$groups_both, na.rm = TRUE)
+        s1_sum <- sum(do_data$groups_obs1, na.rm = TRUE)
+        s2_sum <- sum(do_data$groups_obs2, na.rm = TRUE)
+        alpha_1 <- b_sum + s1_sum + 1 # Beta prior successes
+        beta_1 <- s2_sum + 1 # Beta prior failures
+        p1_sim <- stats::rbeta(10000, alpha_1, beta_1)
+        # Derive total_G from the observer-1-seen count / p1
+        primary_seen <- b_sum + s1_sum
+        total_G <- mean(primary_seen / p1_sim)
     }
 
     mean_p_hat <- sum(do_data$groups_both + do_data$groups_obs1, na.rm = TRUE) /

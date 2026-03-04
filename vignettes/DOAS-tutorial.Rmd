@@ -120,10 +120,10 @@ simulated_population$tot_pop
 survey_data <- simulate_survey(
   sim_pop = simulated_population$sim_pop,
   det_p1 = 0.6, # Observer 1 spots ~60% of groups
-  intra_group_det = 1.0, # Observers count individuals within groups perfectly (no bias)
-  det_group = 0.5, # Group size scaling factor
+  intra_group_det = 1.0, # Observers count individuals within groups correctly
+  det_group = 0.9, # Group size has minor influence on detectability
   obs_effect = 0.75, # Observer 2 is 75% as effective as Observer 1
-  detvar = 0.2, # Variance in detection across different sectors
+  detvar = 0.05, # Small variance in detection probability across sectors
   surv_areas = 5 # Out of 15 areas, 5 will get Double Observers
 )
 
@@ -166,6 +166,8 @@ power_results <- doas_power(
   mean_group = 10,
   tot_areas = 15,
   intra_group_det = 1.0,
+  det_group = 0.9, # Low group-size heterogeneity
+  detvar = 0.05, # Low inter-sector detection variance
   method = "global",
   obs_type = "independent"
 )

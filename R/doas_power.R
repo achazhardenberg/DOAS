@@ -37,9 +37,9 @@ doas_power <- function(
     area_sizes = NULL,
     det_p1 = 0.6,
     intra_group_det = 0.9,
-    det_group = 0.5,
+    det_group = 0.9,
     obs_effect = 0.75,
-    detvar = 0.3,
+    detvar = 0.05,
     method = c("hybrid", "global"),
     ci_method = c("lognormal", "bootstrap"),
     obs_type = c("independent", "dependent", "bayesian")
