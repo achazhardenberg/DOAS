@@ -62,11 +62,12 @@ simulate_pop <- function(pop_size, mean_group, tot_areas, area_sizes = NULL) {
 #' @param det_p1 Base detection probability for Observer 1.
 #' @param intra_group_det Mean factor for count errors (e.g., 0.9 for undercounting).
 #' @param det_group Base detection factor for group size scaling.
-#' @param obs_effect Observer 2 relative efficiency (e.g., 0.75 means Obs 2 is 75% as effective).
+#' @param obs_effect Observer 2 relative efficiency (e.g., 0.75 means Obs 2 is 75 percent as effective).
 #' @param detvar Standard deviation for detection probability across sectors.
 #' @param surv_areas Number of sectors to receive Double Observer surveys.
 #'
-#' @return A list containing the total population size and a list of groups per sector.
+#' @return A data frame with one row per sector, containing observed counts and
+#'   Double Observer tallies ready for input to \code{\link{doas}}.
 #' @importFrom truncnorm rtruncnorm
 #' @importFrom scales rescale
 #' @export

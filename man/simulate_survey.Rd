@@ -23,15 +23,18 @@ simulate_survey(
 
 \item{det_group}{Base detection factor for group size scaling.}
 
-\item{obs_effect}{Observer 2 relative efficiency (e.g., 0.75 means Obs 2 is 75% as effective).}
+\item{obs_effect}{Observer 2 relative efficiency (e.g., 0.75 means Obs 2 is 75 percent as effective).}
 
 \item{detvar}{Standard deviation for detection probability across sectors.}
 
 \item{surv_areas}{Number of sectors to receive Double Observer surveys.}
 }
 \value{
-A list containing the total population size and a list of groups per sector.
+A data frame with one row per sector, containing observed counts and
+Double Observer tallies ready for input to \code{\link{doas}}.
 }
 \description{
-Simulate a Survey and format for DOAS
+Simulates field sampling of a population by applying detection
+probabilities to the true population. A subset of sectors receive
+Double Observer (DO) surveys; the rest are standard block counts.
 }
