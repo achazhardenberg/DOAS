@@ -246,8 +246,8 @@ doas <- function(
         do_data$G_var <- bayes_res$var
     }
 
-    # Group detection probability for each DO sector
-    do_data$p_hat <- do_data$detected_groups / do_data$G_est
+    # Group detection probability for the PRIMARY observer in each DO sector
+    do_data$p_hat <- (do_data$groups_both + do_data$groups_obs1) / do_data$G_est
 
     # Optional Modeling of p_hat
     model <- NULL
@@ -278,10 +278,34 @@ doas <- function(
             }
         )
     }
+    # Calculate mean_p_hat globally to avoid small-sample bias in individual sector estimates
+    if (obs_type == "independent") {
+        total_G <- chapman_estimate(
+            both = sum(do_data$groups_both, na.rm = TRUE),
+            obs1_only = sum(do_data$groups_obs1, na.rm = TRUE),
+            obs2_only = sum(do_data$groups_obs2, na.rm = TRUE)
+        )
+    } else if (obs_type == "dependent") {
+        total_G <- dependent_zippin_estimate(
+            both = sum(do_data$groups_both, na.rm = TRUE),
+            obs1_only = sum(do_data$groups_obs1, na.rm = TRUE),
+            obs2_only = sum(do_data$groups_obs2, na.rm = TRUE)
+        )
+    } else if (obs_type == "bayesian") {
+        # For bayesian, we could pool the posteriors, but running one aggregate model is preferred
+        bayes_res <- bayesian_conjugate_estimate(
+            both = sum(do_data$groups_both, na.rm = TRUE),
+            obs1_only = sum(do_data$groups_obs1, na.rm = TRUE),
+            obs2_only = sum(do_data$groups_obs2, na.rm = TRUE),
+            iter = 10000
+        )
+        total_G <- bayes_res$mean
+    }
 
-    # Average detection probability across DO sectors (fallback)
-    mean_p_hat <- mean(do_data$p_hat, na.rm = TRUE)
-    if (mean_p_hat <= 0 || is.na(mean_p_hat)) {
+    mean_p_hat <- sum(do_data$groups_both + do_data$groups_obs1, na.rm = TRUE) /
+        total_G
+
+    if (mean_p_hat <= 0 || is.na(mean_p_hat) || mean_p_hat > 1) {
         stop("Calculated mean detection probability is invalid.")
     }
 
@@ -370,11 +394,17 @@ doas <- function(
                 sector_var_p_hat <- var_mean_p_hat
             }
 
-            est_groups <- row$detected_groups / sector_p_hat
+            if (row$survey_type == "DO") {
+                primary_groups <- row$groups_both + row$groups_obs1
+            } else {
+                primary_groups <- row$detected_groups
+            }
+
+            est_groups <- primary_groups / sector_p_hat
             est_abundance <- est_groups * mean_size_block
 
             # Variance using Delta method: Var(C / p) ~ C^2 * Var(p) / p^4
-            var_groups <- (row$detected_groups^2) *
+            var_groups <- (primary_groups^2) *
                 sector_var_p_hat /
                 (sector_p_hat^4)
             var_abundance <- var_groups * (mean_size_block^2)
