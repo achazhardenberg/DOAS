@@ -63,3 +63,9 @@ You can view the vignette in R after installation by running:
 ```r
 vignette("DOAS-tutorial", package = "DOAS")
 ```
+
+## Citation & Methods
+
+The methodology behind the DOAS package estimators, simulations, and the original "Double Observer Adjusted Survey" framework was developed and detailed in the following publication. If you use this package in your research, please cite:
+
+> **Panaccio M. et al.** (Year). *Title of the Panaccio paper.* Journal Name, Volume(Issue), Pages. DOI: [insert-doi-here]
