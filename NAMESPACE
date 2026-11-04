@@ -17,7 +17,6 @@ export(doas_data)
 export(doas_power)
 export(simulate_pop)
 export(simulate_survey)
-importFrom(scales,rescale)
 importFrom(stats,
   coef,
   cor,
@@ -32,6 +31,7 @@ importFrom(stats,
   model.offset,
   na.omit,
   plogis,
+  pnorm,
   predict,
   qlogis,
   qnorm,
@@ -50,4 +50,3 @@ importFrom(stats,
   vcov
 )
 importFrom(tools,toTitleCase)
-importFrom(truncnorm,rtruncnorm)

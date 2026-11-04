@@ -51,43 +51,49 @@ devtools::install_github("achazhardenberg/DOAS", build_vignettes = TRUE)
 ```r
 library(DOAS)
 
-# 1. Prepare and validate sector-level survey data
-raw_data <- data.frame(
-  sector_id       = c("A", "B", "C", "D", "E"),
-  total_count     = c(55, 30, 42, 80, 100),
-  detected_groups = c(8, 5, 6, 12, 10),
-  groups_both     = c(6, 3, 4, NA, NA),
-  groups_obs1     = c(1, 1, 1, NA, NA),
-  groups_obs2     = c(1, 1, 1, NA, NA),
-  effort          = c(1.2, -0.5, 0.3, -0.8, 0.9),
-  elevation       = c(2200, 1950, 2100, 2400, 2550)
+# 1. Simulate a 24-sector population (~3500 animals) with a habitat effect on abundance,
+#    and a partial DOAS survey (12 DO sectors, 12 Block sectors) with an effort effect on detection
+set.seed(12)
+pop <- simulate_pop(pop_size = 3500, mean_group = 8, tot_areas = 24, n_cov_effect = 0.5)
+raw_data <- simulate_survey(
+  sim_pop         = pop,
+  det_p1          = 0.55,
+  intra_group_det = 1.0,
+  det_group       = 0.95,
+  obs_effect      = 0.90,
+  detvar          = 0.02,
+  surv_areas      = 12,
+  cov_effect      = 1.0
 )
 
 survey_dat <- doas_data(raw_data, format = "sector")
-print(survey_dat)
+print(head(survey_dat))
 
 # 2. Frequentist Hybrid Estimation (Detection & Abundance Covariates)
-fit_freq_null <- doas(
-  survey_dat,
-  method   = "frequentist",
-  obs_type = "independent",
-  pooling  = "hybrid"
-)
-
 fit_freq_cov <- doas(
   survey_dat,
   method    = "frequentist",
   obs_type  = "independent",
   pooling   = "hybrid",
-  p_formula = ~ effort,
-  n_formula = ~ elevation
+  p_formula = ~ covariate,
+  n_formula = ~ habitat
+)
+
+fit_freq_hab <- doas(
+  survey_dat,
+  method    = "frequentist",
+  obs_type  = "independent",
+  pooling   = "hybrid",
+  p_formula = ~ habitat,
+  n_formula = ~ habitat
 )
 
 summary(fit_freq_cov)
-QAIC(fit_freq_null, fit_freq_cov)
+cat("True simulated population:", pop$tot_pop, "\n")
+QAIC(fit_freq_cov, fit_freq_hab)
 
-# Predict detection probability and expected abundance across an elevation/effort gradient
-new_sectors <- data.frame(effort = c(-0.5, 0.5, 1.5), elevation = c(2000, 2300, 2600))
+# Predict detection probability and expected abundance across a covariate gradient
+new_sectors <- data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1))
 predict(fit_freq_cov, newdata = new_sectors, type = "detection")
 predict(fit_freq_cov, newdata = new_sectors, type = "abundance")
 
@@ -107,8 +113,8 @@ fit_bayes_cov <- doas(
   method    = "bayesian",
   obs_type  = "independent",
   pooling   = "hybrid",
-  p_formula = ~ effort,
-  n_formula = ~ elevation,
+  p_formula = ~ covariate,
+  n_formula = ~ habitat,
   chains    = 3,
   iter      = 2000,
   burnin    = 500
@@ -128,6 +134,8 @@ vignette("DOAS-tutorial", package = "DOAS")
 
 ## Citation & Methods
 
-The Double Observer Adjusted Survey framework was originally developed in the publication below. If you use `DOAS` in your research, please cite:
+If you use `DOAS` in your research, please cite both the R package and the original methodological paper introducing the Double Observer Adjusted Survey framework:
 
+> von Hardenberg, A. (2026). *DOAS: Double Observer Adjusted Survey Framework*. R package version 0.1.0. https://github.com/achazhardenberg/DOAS
+>
 > Panaccio, M., Brambilla, A., Bassano, B., Smith, T., & von Hardenberg, A. (2024). A new double observer-based census framework to improve abundance estimations in mountain ungulates and other gregarious species with a reduced effort. *Ecological Solutions and Evidence*, 5(4), e12405. https://doi.org/10.1002/2688-8319.12405

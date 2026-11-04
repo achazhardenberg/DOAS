@@ -16,7 +16,7 @@ simulate_survey(
 )
 }
 \arguments{
-\item{sim_pop}{A simulated population from \code{\link{simulate_pop}}.}
+\item{sim_pop}{A simulated population from \code{\link{simulate_pop}} (either the full list or \code{pop$sim_pop}).}
 
 \item{det_p1}{Base detection probability for Observer 1.}
 
@@ -35,7 +35,8 @@ simulate_survey(
 }
 \value{
 A data frame with one row per sector, containing observed counts,
-  Double Observer tallies, and a sector-level \code{covariate} column ready for input to \code{\link{doas}}.
+  Double Observer tallies, a sector detection covariate (\code{covariate}), and a sector
+  abundance covariate (\code{habitat}) ready for input to \code{\link{doas}}.
 }
 \description{
 Simulate a Survey and format for DOAS

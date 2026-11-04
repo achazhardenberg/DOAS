@@ -1,4 +1,10 @@
+.RData
+.Rhistory
+.Rproj.user/
 inst/doc
 /doc/
 /Meta/
 /manuscript/
+debug_*.R
+simulation_*.R
+*.png

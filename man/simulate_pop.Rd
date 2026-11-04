@@ -4,7 +4,13 @@
 \alias{simulate_pop}
 \title{Simulate a Population}
 \usage{
-simulate_pop(pop_size, mean_group, tot_areas, area_sizes = NULL)
+simulate_pop(
+  pop_size,
+  mean_group,
+  tot_areas,
+  area_sizes = NULL,
+  n_cov_effect = 0
+)
 }
 \arguments{
 \item{pop_size}{Average total population size (Poisson distributed).}
@@ -13,10 +19,15 @@ simulate_pop(pop_size, mean_group, tot_areas, area_sizes = NULL)
 
 \item{tot_areas}{Total number of survey sectors.}
 
-\item{area_sizes}{Vector of probabilities/sizes for assigning groups to sectors. If NULL, uniform probabilities are used.}
+\item{area_sizes}{Vector of probabilities/sizes for assigning groups to sectors. If NULL,
+probabilities are proportional to \code{exp(n_cov_effect * habitat)} (uniform when \code{n_cov_effect = 0}).}
+
+\item{n_cov_effect}{Optional numeric log-linear effect of a simulated standard-normal sector
+habitat covariate (\code{habitat}) on true sector abundance (default \code{0}).}
 }
 \value{
-A list containing the total population size and a list of groups per sector.
+A list containing \code{tot_pop} (total simulated individuals), \code{sim_pop}
+  (list of groups per sector), and \code{habitat} (simulated sector-level habitat covariate vector).
 }
 \description{
 Simulates a population of individuals split into groups across multiple sectors.

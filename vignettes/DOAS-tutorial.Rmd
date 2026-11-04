@@ -46,31 +46,31 @@ For sectors that received a Double Observer survey, provide the following column
 
 ### Example Data
 
-Let's imagine you surveyed 6 valleys. You did a standard block count in 3 of them, and deployed two observers in 3 of the valleys, while also recording survey `effort` (hours) and `habitat` type.
+Let's generate a 24-sector dataset using `simulate_pop()` and `simulate_survey()`, where 12 sectors receive Double Observer surveys and 12 receive single-observer block counts, with a simulated detection covariate (`covariate`, e.g. standardized survey effort) and a simulated abundance covariate (`habitat`, e.g. standardized elevation/habitat quality).
 
 ```{r setup-real-data}
 library(DOAS)
 
-my_survey_data <- data.frame(
-  sector_id = c("Valley_A", "Valley_B", "Valley_C", "Valley_D", "Valley_E", "Valley_F"),
-
-  # Total animals seen by anyone in the sector
-  total_count = c(55, 30, 80, 100, 20, 0),
-
-  # Total unique groups seen
-  detected_groups = c(8, 5, 13, 10, 2, 0),
-
-  # Mark-Recapture data for DO sectors
-  groups_both = c(6, 3, 10, NA, NA, NA),
-  groups_obs1 = c(1, 1, 2, NA, NA, NA),
-  groups_obs2 = c(1, 1, 1, NA, NA, NA),
-
-  # Optional sector-level covariates
-  effort = c(10, 6, 12, 8, 5, 4),
-  habitat = c("Open", "Forest", "Open", "Open", "Forest", "Forest")
+set.seed(12)
+sim_pop_example <- simulate_pop(
+  pop_size     = 3500,
+  mean_group   = 8,
+  tot_areas    = 24,
+  n_cov_effect = 0.5
 )
 
-print(my_survey_data)
+my_survey_data <- simulate_survey(
+  sim_pop         = sim_pop_example,
+  det_p1          = 0.55,
+  intra_group_det = 1.0,
+  det_group       = 0.95,
+  obs_effect      = 0.90,
+  detvar          = 0.02,
+  surv_areas      = 12,
+  cov_effect      = 1.0
+)
+
+head(my_survey_data)
 ```
 
 ### Formatting & Inspecting Raw Field Sheets (`doas_data`)
@@ -123,6 +123,39 @@ You can view the specific sector-by-sector estimates directly from the results o
 knitr::kable(results$sector_estimates, digits = 2)
 ```
 
+### Solitary Species and Individual-Level Counts (Group Size = 1)
+
+While DOAS was originally developed for gregarious mountain ungulates, it applies directly to **solitary species** (e.g., roe deer, carnivores, or territorial birds) where observers detect single animals rather than social groups.
+
+When each detection is an individual animal, group size is identically $1$, so **the number of detected groups equals total count** (`detected_groups = total_count`). `doas_data()` handles this automatically: if you omit `detected_groups`, it sets `detected_groups = total_count` and `mean_group_size = 1`:
+
+```{r solitary-example}
+# Survey data for a solitary species across 8 sectors (4 DO, 4 Block)
+# Omitting detected_groups defaults every observation to an individual animal (group_size = 1)
+solitary_data <- data.frame(
+  sector_id   = paste0("Sector_", 1:8),
+  total_count = c(14, 22, 19, 28, 12, 31, 16, 25),
+  groups_both = c(9, 15, 13, 19, NA, NA, NA, NA),
+  groups_obs1 = c(3, 4, 3, 5, NA, NA, NA, NA),
+  groups_obs2 = c(2, 3, 3, 4, NA, NA, NA, NA),
+  ruggedness  = c(0.8, -0.4, 0.2, -0.9, 1.1, -0.7, 0.5, -0.3)
+)
+
+validated_solitary <- doas_data(solitary_data, format = "sector")
+print(validated_solitary)
+
+# Fit DOAS with detection covariate
+fit_solitary <- doas(
+  validated_solitary,
+  method = "frequentist",
+  p_formula = ~ruggedness
+)
+
+summary(fit_solitary)
+```
+
+Notice that for solitary species, `est_groups` and `est_abundance` in `fit_solitary$sector_estimates` are identical, as expected.
+
 ---
 
 ## 2. Modeling Covariates on Detection (`p_formula`) and Abundance (`n_formula`)
@@ -133,15 +166,15 @@ If detection probability varies across sectors due to survey effort, visibility,
 - **Bayesian (`method = "bayesian"`):** Runs a multi-chain Metropolis-within-Gibbs regression coupled to the posterior draws of latent group abundance $G_i$, reporting posterior means, standard deviations, 95% credible intervals, $\hat{R}$, and ESS for every regression coefficient.
 
 ```{r run-covariates}
-# Frequentist detection covariate model with survey effort and abundance covariate model
-mod_effort <- doas(my_survey_data, method = "frequentist", p_formula = ~effort, n_formula = ~habitat)
-mod_group <- doas(my_survey_data, method = "frequentist", p_formula = ~mean_group_size)
+# Frequentist detection covariate model and abundance covariate model
+mod_effort <- doas(my_survey_data, method = "frequentist", p_formula = ~covariate, n_formula = ~habitat)
+mod_group <- doas(my_survey_data, method = "frequentist", p_formula = ~mean_group_size, n_formula = ~habitat)
 
 summary(mod_effort)
 
 # Predict detection probability or expected abundance for new sectors
-predict(mod_effort, newdata = data.frame(effort = c(5, 10), habitat = c("Forest", "Open")), type = "detection")
-predict(mod_effort, newdata = data.frame(effort = c(5, 10), habitat = c("Forest", "Open")), type = "abundance")
+predict(mod_effort, newdata = data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "detection")
+predict(mod_effort, newdata = data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "abundance")
 
 # Compare competing detection covariate models using Quasi-AIC (QAIC)
 QAIC(mod_effort, mod_group)
@@ -163,7 +196,8 @@ mod_bayes_cov <- doas(
   my_survey_data,
   method = "bayesian",
   obs_type = "independent",
-  p_formula = ~effort,
+  p_formula = ~covariate,
+  n_formula = ~habitat,
   chains = 4,
   iter = 1000
 )

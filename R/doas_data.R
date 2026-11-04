@@ -224,10 +224,15 @@ format_sector_wide <- function(
             obs2_vec[i] <- NA_real_
         } else {
             if (is.na(det_vec[i])) {
-                stop(sprintf(
-                    "Block sector '%s' is missing 'detected_groups'.",
-                    as.character(data[[sector]][i])
-                ))
+                if (!has_groups) {
+                    # Individual-level survey (group size = 1): each individual is 1 group
+                    det_vec[i] <- tot_cnt[i]
+                } else {
+                    stop(sprintf(
+                        "Block sector '%s' is missing 'detected_groups'.",
+                        as.character(data[[sector]][i])
+                    ))
+                }
             }
             both_vec[i] <- NA_real_
             obs1_vec[i] <- NA_real_
@@ -300,7 +305,12 @@ format_group_long <- function(
     covariates
 ) {
     if (!count %in% names(data)) {
-        stop(sprintf("Group size column '%s' not found in data.", count))
+        if (identical(count, "group_size")) {
+            # Individual-level long format: default each row to group_size = 1
+            data[[count]] <- 1
+        } else {
+            stop(sprintf("Group size column '%s' not found in data.", count))
+        }
     }
 
     use_seen_by <- !is.null(seen_by)
@@ -417,6 +427,9 @@ format_sighting_long <- function(
     all_sectors,
     covariates
 ) {
+    if (!count %in% names(data) && identical(count, "group_size")) {
+        data[[count]] <- 1
+    }
     for (col in c(count, observer, group_id)) {
         if (!col %in% names(data)) {
             stop(sprintf("Required column '%s' not found in data.", col))

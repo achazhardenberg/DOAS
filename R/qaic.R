@@ -1,8 +1,9 @@
 #' Quasi-Akaike Information Criterion (QAIC)
 #'
-#' Computes the Quasi-Akaike Information Criterion (QAIC) for frequentist statistical
-#' models that handle overdispersion (such as quasi-binomial detection GLM models via \code{p_formula}
-#' or quasi-poisson abundance GLM models via \code{n_formula} in \code{\link{doas}}).
+#' Computes the Quasi-Akaike Information Criterion (QAIC; Burnham & Anderson 2002)
+#' for frequentist statistical models that handle overdispersion (such as quasi-binomial
+#' detection GLM models via \code{p_formula} or quasi-poisson abundance GLM models
+#' via \code{n_formula} in \code{\link{doas}}).
 #' For Bayesian MCMC models (\code{method = "bayesian"}), use \code{\link{WAIC}} instead.
 #'
 #' @param object A fitted model object (e.g., a frequentist `doas` model).
@@ -18,8 +19,9 @@ QAIC <- function(object, ...) {
 #'
 #' Extracts the QAIC for frequentist DOAS models that used a detection covariate formula
 #' (\code{p_formula}) or an abundance covariate formula (\code{n_formula}).
-#' Standard AIC is undefined for quasi-likelihood GLMs, so QAIC penalizes the
-#' log-likelihood by the estimated overdispersion parameter (\eqn{\hat{c}}).
+#' Following Burnham & Anderson (2002), when comparing multiple candidate models, a single
+#' common variance inflation factor \eqn{\hat{c} = \max(1, \hat{c}_{\text{global}})} is
+#' estimated from the most parameterized model in the candidate set.
 #'
 #' @param object A fitted `doas` object with \code{method = "frequentist"}.
 #' @param ... Optionally more fitted `doas` objects.
@@ -37,7 +39,6 @@ QAIC <- function(object, ...) {
 QAIC.doas <- function(object, ...) {
     mods <- list(object, ...)
 
-    # Determine whether we are comparing abundance (n_formula) or detection (p_formula) submodels
     has_n <- vapply(
         mods,
         function(m) inherits(m, "doas") && !is.null(m$n_formula),
@@ -53,7 +54,43 @@ QAIC.doas <- function(object, ...) {
             length(unique(vapply(mods, function(m) paste(deparse(m$p_formula), collapse = " "), character(1)))) == 1
     )
 
-    get_qaic <- function(mod) {
+    extract_glm <- function(mod) {
+        if (!inherits(mod, "doas") || identical(mod$method, "bayesian")) {
+            return(NULL)
+        }
+        if (use_n_submodel) mod$n_model else mod$p_model
+    }
+
+    glm_list <- lapply(mods, extract_glm)
+    k_vec <- vapply(
+        glm_list,
+        function(g) if (is.null(g)) NA_real_ else length(stats::coef(g)),
+        numeric(1)
+    )
+    disp_vec <- vapply(
+        glm_list,
+        function(g) {
+            if (is.null(g)) {
+                NA_real_
+            } else {
+                d <- tryCatch(summary(g)$dispersion, error = function(e) NA_real_)
+                if (is.nan(d)) NA_real_ else d
+            }
+        },
+        numeric(1)
+    )
+
+    # Common c_hat from the most parameterized valid model in the set (Burnham & Anderson 2002), bounded >= 1
+    valid_disp <- which(!is.na(disp_vec) & is.finite(disp_vec) & disp_vec > 0)
+    common_c_hat <- if (length(valid_disp) > 0) {
+        best_idx <- valid_disp[which.max(k_vec[valid_disp])]
+        max(1.0, disp_vec[best_idx])
+    } else {
+        NA_real_
+    }
+
+    get_qaic <- function(idx) {
+        mod <- mods[[idx]]
         if (!inherits(mod, "doas")) {
             return(NA_real_)
         }
@@ -61,47 +98,42 @@ QAIC.doas <- function(object, ...) {
             warning(
                 "QAIC is intended for frequentist GLM models. For Bayesian MCMC models (method = 'bayesian'), use WAIC() instead."
             )
+            return(NA_real_)
         }
-        if (use_n_submodel) {
-            glm_mod <- mod$n_model
-            y <- round(glm_mod$y)
-            mu <- pmax(1e-6, glm_mod$fitted.values)
-            log_L <- sum(stats::dpois(y, lambda = mu, log = TRUE))
-            c_hat <- summary(glm_mod)$dispersion
-            K <- length(stats::coef(glm_mod))
-            qaic_val <- -2 * (log_L / c_hat) + 2 * K
-        } else {
-            if (is.null(mod$p_formula)) {
-                warning(
-                    "DOAS model did not use a covariate formula (p_formula or n_formula). QAIC is undefined."
-                )
-                return(NA_real_)
-            }
-            glm_mod <- mod$p_model
-            y <- glm_mod$y
-            mu <- glm_mod$fitted.values
-            wt <- glm_mod$prior.weights
-            log_L <- sum(ifelse(
-                wt > 0,
-                wt * log(stats::dbinom(round(y * wt), round(wt), mu)),
-                0
-            ))
-            c_hat <- summary(glm_mod)$dispersion
-            K <- length(stats::coef(glm_mod))
-            qaic_val <- -2 * (log_L / c_hat) + 2 * K
+        glm_mod <- glm_list[[idx]]
+        if (is.null(glm_mod)) {
+            warning(
+                "DOAS model did not use a covariate formula (p_formula or n_formula). QAIC is undefined."
+            )
+            return(NA_real_)
         }
-
-        if (is.nan(qaic_val) || is.na(qaic_val)) {
+        if (is.na(disp_vec[idx]) || is.na(common_c_hat)) {
             warning(
                 "QAIC cannot be computed because the model ran out of residual degrees of freedom (c-hat is NaN)."
             )
             return(NA_real_)
         }
 
-        qaic_val
+        if (use_n_submodel) {
+            y <- round(glm_mod$y)
+            mu <- pmax(1e-6, glm_mod$fitted.values)
+            log_L <- sum(stats::dpois(y, lambda = mu, log = TRUE))
+        } else {
+            y <- glm_mod$y
+            mu <- pmin(1 - 1e-6, pmax(1e-6, glm_mod$fitted.values))
+            wt <- glm_mod$prior.weights
+            log_L <- sum(ifelse(
+                wt > 0,
+                stats::dbinom(round(y * wt), round(wt), mu, log = TRUE),
+                0
+            ))
+        }
+
+        K <- k_vec[idx]
+        -2 * (log_L / common_c_hat) + 2 * K
     }
 
-    qaic_vals <- vapply(mods, get_qaic, FUN.VALUE = numeric(1))
+    qaic_vals <- vapply(seq_along(mods), get_qaic, FUN.VALUE = numeric(1))
 
     if (length(mods) == 1) {
         return(qaic_vals)
@@ -109,21 +141,8 @@ QAIC.doas <- function(object, ...) {
 
     call_names <- as.character(match.call()[-1])
     res_df <- data.frame(
-        df = vapply(
-            mods,
-            function(m) {
-                if (!inherits(m, "doas")) {
-                    NA_real_
-                } else if (use_n_submodel && !is.null(m$n_model)) {
-                    length(stats::coef(m$n_model))
-                } else if (!is.null(m$p_model)) {
-                    length(stats::coef(m$p_model))
-                } else {
-                    NA_real_
-                }
-            },
-            FUN.VALUE = numeric(1)
-        ),
+        df = k_vec,
+        c_hat = rep(round(common_c_hat, 3), length(mods)),
         QAIC = qaic_vals
     )
     rownames(res_df) <- call_names

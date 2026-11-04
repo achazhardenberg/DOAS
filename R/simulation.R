@@ -12,7 +12,7 @@
 #' @param detvar Standard deviation for detection probability across sectors.
 #' @param cov_effect Numeric log-odds slope of the sector-level covariate on detection probability (default 0).
 #' @return A list with `total_count`, `groups_both`, `groups_obs1`, `groups_obs2`, `detected_groups`, and `covariate`.
-#' @importFrom stats rnorm runif plogis qlogis
+#' @importFrom stats rnorm runif plogis qlogis pnorm qnorm
 #' @keywords internal
 #' @noRd
 simulate_sector_detection <- function(
@@ -43,11 +43,9 @@ simulate_sector_detection <- function(
 
     # Group detectabilities based on size (anchored at 1 = sqrt(1) as in original DOAS_script.R)
     grp_sqrt_anchored <- c(grp_sqrt, 1)
-    if (length(unique(grp_sqrt_anchored)) > 1) {
-        group_det <- scales::rescale(
-            grp_sqrt_anchored,
-            to = c(det_group, 1)
-        )[seq_along(grp_sqrt)]
+    rng <- range(grp_sqrt_anchored)
+    if (rng[2] > rng[1]) {
+        group_det <- (grp_sqrt - rng[1]) / (rng[2] - rng[1]) * (1 - det_group) + det_group
     } else {
         group_det <- rep(det_group, length(grp_sqrt))
     }
@@ -59,13 +57,17 @@ simulate_sector_detection <- function(
         det_p1
     }
 
-    detp_factor <- truncnorm::rtruncnorm(
-        1,
-        a = 0,
-        b = 1,
-        mean = det_p1_sec,
-        sd = detvar
-    )
+    detp_factor <- if (detvar > 0) {
+        u_low <- stats::pnorm(0, mean = det_p1_sec, sd = detvar)
+        u_high <- stats::pnorm(1, mean = det_p1_sec, sd = detvar)
+        stats::qnorm(
+            stats::runif(1, min = u_low, max = u_high),
+            mean = det_p1_sec,
+            sd = detvar
+        )
+    } else {
+        det_p1_sec
+    }
 
     p1 <- detp_factor * group_det
     obs1_det <- stats::runif(length(p1)) < p1
@@ -124,19 +126,32 @@ simulate_sector_detection <- function(
 #' @param pop_size Average total population size (Poisson distributed).
 #' @param mean_group Average group size (Poisson distributed).
 #' @param tot_areas Total number of survey sectors.
-#' @param area_sizes Vector of probabilities/sizes for assigning groups to sectors. If NULL, uniform probabilities are used.
+#' @param area_sizes Vector of probabilities/sizes for assigning groups to sectors. If NULL,
+#'   probabilities are proportional to \code{exp(n_cov_effect * habitat)} (uniform when \code{n_cov_effect = 0}).
+#' @param n_cov_effect Optional numeric log-linear effect of a simulated standard-normal sector
+#'   habitat covariate (\code{habitat}) on true sector abundance (default \code{0}).
 #'
-#' @return A list containing the total population size and a list of groups per sector.
+#' @return A list containing \code{tot_pop} (total simulated individuals), \code{sim_pop}
+#'   (list of groups per sector), and \code{habitat} (simulated sector-level habitat covariate vector).
 #' @importFrom stats rpois rnorm runif
 #' @export
-simulate_pop <- function(pop_size, mean_group, tot_areas, area_sizes = NULL) {
+simulate_pop <- function(
+    pop_size,
+    mean_group,
+    tot_areas,
+    area_sizes = NULL,
+    n_cov_effect = 0
+) {
+    habitat_vec <- stats::rnorm(tot_areas, mean = 0, sd = 1)
     tot_pop <- stats::rpois(1, pop_size)
     if (tot_pop == 0) {
-        return(list(tot_pop = 0, sim_pop = vector("list", tot_areas)))
+        empty_pop <- vector("list", tot_areas)
+        attr(empty_pop, "habitat") <- habitat_vec
+        return(list(tot_pop = 0, sim_pop = empty_pop, habitat = habitat_vec))
     }
 
     if (is.null(area_sizes)) {
-        area_sizes <- rep(1, tot_areas)
+        area_sizes <- exp(n_cov_effect * habitat_vec)
     }
 
     sim_list <- as.character(seq_len(tot_pop))
@@ -165,12 +180,13 @@ simulate_pop <- function(pop_size, mean_group, tot_areas, area_sizes = NULL) {
         }
     })
 
-    list(sim_pop = sim_pop, tot_pop = tot_pop)
+    attr(sim_pop, "habitat") <- habitat_vec
+    list(sim_pop = sim_pop, tot_pop = tot_pop, habitat = habitat_vec)
 }
 
 #' Simulate a Survey and format for DOAS
 #'
-#' @param sim_pop A simulated population from \code{\link{simulate_pop}}.
+#' @param sim_pop A simulated population from \code{\link{simulate_pop}} (either the full list or \code{pop$sim_pop}).
 #' @param det_p1 Base detection probability for Observer 1.
 #' @param intra_group_det Mean factor for count errors (e.g., 0.9 for undercounting).
 #' @param det_group Base detection factor for group size scaling.
@@ -181,9 +197,8 @@ simulate_pop <- function(pop_size, mean_group, tot_areas, area_sizes = NULL) {
 #'   (\code{covariate}) on detection probability (default \code{0}, meaning no covariate effect).
 #'
 #' @return A data frame with one row per sector, containing observed counts,
-#'   Double Observer tallies, and a sector-level \code{covariate} column ready for input to \code{\link{doas}}.
-#' @importFrom truncnorm rtruncnorm
-#' @importFrom scales rescale
+#'   Double Observer tallies, a sector detection covariate (\code{covariate}), and a sector
+#'   abundance covariate (\code{habitat}) ready for input to \code{\link{doas}}.
 #' @export
 simulate_survey <- function(
     sim_pop,
@@ -195,7 +210,18 @@ simulate_survey <- function(
     surv_areas,
     cov_effect = 0
 ) {
+    if (is.list(sim_pop) && "sim_pop" %in% names(sim_pop)) {
+        hab_vec <- sim_pop$habitat
+        sim_pop <- sim_pop$sim_pop
+    } else {
+        hab_vec <- attr(sim_pop, "habitat")
+    }
+
     tot_areas <- length(sim_pop)
+    if (is.null(hab_vec) || length(hab_vec) != tot_areas) {
+        hab_vec <- stats::rnorm(tot_areas, mean = 0, sd = 1)
+    }
+
     surv_areas <- min(surv_areas, tot_areas)
     do_sectors <- sample(seq_len(tot_areas), surv_areas, replace = FALSE)
 
@@ -218,6 +244,7 @@ simulate_survey <- function(
             groups_obs2 = res$groups_obs2,
             detected_groups = res$detected_groups,
             covariate = res$covariate,
+            habitat = hab_vec[m],
             stringsAsFactors = FALSE
         )
     })
