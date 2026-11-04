@@ -89,21 +89,35 @@ my_survey_data <- simulate_survey(
 )
 
 head(my_survey_data)
-#>   sector_id total_count groups_both groups_obs1 groups_obs2 detected_groups
-#> 1         1          31          NA          NA          NA               1
-#> 2         2          55          NA          NA          NA              10
-#> 3         3          58           1           5           4              10
-#> 4         4          57          NA          NA          NA               7
-#> 5         5          20           0           0           1               1
-#> 6         6          97           5           3           5              13
-#>      habitat     effort
-#> 1 -1.4805676 -0.3560288
-#> 2  1.5771695 -1.3522702
-#> 3 -0.9567445 -0.5747150
-#> 4 -0.9200052 -0.3996702
-#> 5 -1.9976421 -0.5177994
-#> 6 -0.2722960  0.5118662
+#>   sector_id survey_type total_count groups_both groups_obs1 groups_obs2
+#> 1         1       Block          31          NA          NA          NA
+#> 2         2       Block          55          NA          NA          NA
+#> 3         3          DO          58           1           5           4
+#> 4         4       Block          57          NA          NA          NA
+#> 5         5          DO          20           0           0           1
+#> 6         6          DO          97           5           3           5
+#>   detected_groups    habitat     effort
+#> 1               1 -1.4805676 -0.3560288
+#> 2              10  1.5771695 -1.3522702
+#> 3              10 -0.9567445 -0.5747150
+#> 4               7 -0.9200052 -0.3996702
+#> 5               1 -1.9976421 -0.5177994
+#> 6              13 -0.2722960  0.5118662
 ```
+
+> **Understanding DO vs. Block Sectors:** In this survey, 12 out of 24
+> sectors were randomly selected for Double Observer surveys
+> (`surv_areas = 12`): - **Block sectors** (e.g. sectors 1, 2, and 4;
+> `survey_type == "Block"`): Only a **single observer** surveyed the
+> sector. That observer detected the groups (`detected_groups = 1` for
+> Sector 1, counting `total_count = 31` animals). The double-observer
+> columns (`groups_both`, `groups_obs1`, `groups_obs2`) are `NA` because
+> only one observer surveyed those sectors. - **Double Observer (DO)
+> sectors** (e.g. sectors 3, 5, and 6; `survey_type == "DO"`): **Two
+> observers** surveyed simultaneously, recording which groups were
+> spotted by both observers vs. only Observer 1 or Observer 2. `DOAS`
+> uses these DO sectors to estimate detection probability and adjust the
+> single-observer block counts.
 
 ### Formatting & Inspecting Raw Field Sheets (`doas_data`)
 
@@ -815,20 +829,20 @@ survey_data <- simulate_survey(
 )
 
 head(survey_data)
-#>   sector_id total_count groups_both groups_obs1 groups_obs2 detected_groups
-#> 1         1          76           1           2           3               6
-#> 2         2          53           1           0           1               2
-#> 3         3          31          NA          NA          NA               2
-#> 4         4          43          NA          NA          NA               1
-#> 5         5          38           2           1           0               3
-#> 6         6          29          NA          NA          NA               3
-#>    elevation     effort
-#> 1  1.3709584 -0.4650218
-#> 2 -0.5646982  0.5734078
-#> 3  0.3631284  0.2549361
-#> 4  0.6328626  2.6721442
-#> 5  0.4042683 -0.1344950
-#> 6 -0.1061245  0.1115741
+#>   sector_id survey_type total_count groups_both groups_obs1 groups_obs2
+#> 1         1          DO          76           1           2           3
+#> 2         2          DO          53           1           0           1
+#> 3         3       Block          31          NA          NA          NA
+#> 4         4       Block          43          NA          NA          NA
+#> 5         5          DO          38           2           1           0
+#> 6         6       Block          29          NA          NA          NA
+#>   detected_groups  elevation     effort
+#> 1               6  1.3709584 -0.4650218
+#> 2               2 -0.5646982  0.5734078
+#> 3               2  0.3631284  0.2549361
+#> 4               1  0.6328626  2.6721442
+#> 5               3  0.4042683 -0.1344950
+#> 6               3 -0.1061245  0.1115741
 ```
 
 This output is automatically formatted and ready to be plugged into

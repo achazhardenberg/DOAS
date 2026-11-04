@@ -52,7 +52,7 @@
       <img src="../logo.svg" class="logo" alt=""><h1>DOAS Tutorial: Analyzing Real Survey Data and Running Simulations</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/achazhardenberg/DOAS/blob/v1.0.0/vignettes/DOAS-tutorial.Rmd" class="external-link"><code>vignettes/DOAS-tutorial.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/achazhardenberg/DOAS/blob/master/vignettes/DOAS-tutorial.Rmd" class="external-link"><code>vignettes/DOAS-tutorial.Rmd</code></a></small>
       <div class="d-none name"><code>DOAS-tutorial.Rmd</code></div>
     </div>
 
@@ -151,20 +151,37 @@ abundance covariate (<code>habitat</code>):</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">my_survey_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   sector_id total_count groups_both groups_obs1 groups_obs2 detected_groups</span></span>
-<span><span class="co">#&gt; 1         1          31          NA          NA          NA               1</span></span>
-<span><span class="co">#&gt; 2         2          55          NA          NA          NA              10</span></span>
-<span><span class="co">#&gt; 3         3          58           1           5           4              10</span></span>
-<span><span class="co">#&gt; 4         4          57          NA          NA          NA               7</span></span>
-<span><span class="co">#&gt; 5         5          20           0           0           1               1</span></span>
-<span><span class="co">#&gt; 6         6          97           5           3           5              13</span></span>
-<span><span class="co">#&gt;      habitat     effort</span></span>
-<span><span class="co">#&gt; 1 -1.4805676 -0.3560288</span></span>
-<span><span class="co">#&gt; 2  1.5771695 -1.3522702</span></span>
-<span><span class="co">#&gt; 3 -0.9567445 -0.5747150</span></span>
-<span><span class="co">#&gt; 4 -0.9200052 -0.3996702</span></span>
-<span><span class="co">#&gt; 5 -1.9976421 -0.5177994</span></span>
-<span><span class="co">#&gt; 6 -0.2722960  0.5118662</span></span></code></pre></div>
+<span><span class="co">#&gt;   sector_id survey_type total_count groups_both groups_obs1 groups_obs2</span></span>
+<span><span class="co">#&gt; 1         1       Block          31          NA          NA          NA</span></span>
+<span><span class="co">#&gt; 2         2       Block          55          NA          NA          NA</span></span>
+<span><span class="co">#&gt; 3         3          DO          58           1           5           4</span></span>
+<span><span class="co">#&gt; 4         4       Block          57          NA          NA          NA</span></span>
+<span><span class="co">#&gt; 5         5          DO          20           0           0           1</span></span>
+<span><span class="co">#&gt; 6         6          DO          97           5           3           5</span></span>
+<span><span class="co">#&gt;   detected_groups    habitat     effort</span></span>
+<span><span class="co">#&gt; 1               1 -1.4805676 -0.3560288</span></span>
+<span><span class="co">#&gt; 2              10  1.5771695 -1.3522702</span></span>
+<span><span class="co">#&gt; 3              10 -0.9567445 -0.5747150</span></span>
+<span><span class="co">#&gt; 4               7 -0.9200052 -0.3996702</span></span>
+<span><span class="co">#&gt; 5               1 -1.9976421 -0.5177994</span></span>
+<span><span class="co">#&gt; 6              13 -0.2722960  0.5118662</span></span></code></pre></div>
+<blockquote>
+<p><strong>Understanding DO vs. Block Sectors:</strong> In this survey,
+12 out of 24 sectors were randomly selected for Double Observer surveys
+(<code>surv_areas = 12</code>): - <strong>Block sectors</strong>
+(e.g. sectors 1, 2, and 4; <code>survey_type == "Block"</code>): Only a
+<strong>single observer</strong> surveyed the sector. That observer
+detected the groups (<code>detected_groups = 1</code> for Sector 1,
+counting <code>total_count = 31</code> animals). The double-observer
+columns (<code>groups_both</code>, <code>groups_obs1</code>,
+<code>groups_obs2</code>) are <code>NA</code> because only one observer
+surveyed those sectors. - <strong>Double Observer (DO) sectors</strong>
+(e.g. sectors 3, 5, and 6; <code>survey_type == "DO"</code>):
+<strong>Two observers</strong> surveyed simultaneously, recording which
+groups were spotted by both observers vs. only Observer 1 or Observer 2.
+<code>DOAS</code> uses these DO sectors to estimate detection
+probability and adjust the single-observer block counts.</p>
+</blockquote>
 </div>
 <div class="section level3">
 <h3 id="formatting-inspecting-raw-field-sheets-doas_data">Formatting &amp; Inspecting Raw Field Sheets
@@ -1067,20 +1084,20 @@ covariates like <code>effort</code>):</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">survey_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   sector_id total_count groups_both groups_obs1 groups_obs2 detected_groups</span></span>
-<span><span class="co">#&gt; 1         1          76           1           2           3               6</span></span>
-<span><span class="co">#&gt; 2         2          53           1           0           1               2</span></span>
-<span><span class="co">#&gt; 3         3          31          NA          NA          NA               2</span></span>
-<span><span class="co">#&gt; 4         4          43          NA          NA          NA               1</span></span>
-<span><span class="co">#&gt; 5         5          38           2           1           0               3</span></span>
-<span><span class="co">#&gt; 6         6          29          NA          NA          NA               3</span></span>
-<span><span class="co">#&gt;    elevation     effort</span></span>
-<span><span class="co">#&gt; 1  1.3709584 -0.4650218</span></span>
-<span><span class="co">#&gt; 2 -0.5646982  0.5734078</span></span>
-<span><span class="co">#&gt; 3  0.3631284  0.2549361</span></span>
-<span><span class="co">#&gt; 4  0.6328626  2.6721442</span></span>
-<span><span class="co">#&gt; 5  0.4042683 -0.1344950</span></span>
-<span><span class="co">#&gt; 6 -0.1061245  0.1115741</span></span></code></pre></div>
+<span><span class="co">#&gt;   sector_id survey_type total_count groups_both groups_obs1 groups_obs2</span></span>
+<span><span class="co">#&gt; 1         1          DO          76           1           2           3</span></span>
+<span><span class="co">#&gt; 2         2          DO          53           1           0           1</span></span>
+<span><span class="co">#&gt; 3         3       Block          31          NA          NA          NA</span></span>
+<span><span class="co">#&gt; 4         4       Block          43          NA          NA          NA</span></span>
+<span><span class="co">#&gt; 5         5          DO          38           2           1           0</span></span>
+<span><span class="co">#&gt; 6         6       Block          29          NA          NA          NA</span></span>
+<span><span class="co">#&gt;   detected_groups  elevation     effort</span></span>
+<span><span class="co">#&gt; 1               6  1.3709584 -0.4650218</span></span>
+<span><span class="co">#&gt; 2               2 -0.5646982  0.5734078</span></span>
+<span><span class="co">#&gt; 3               2  0.3631284  0.2549361</span></span>
+<span><span class="co">#&gt; 4               1  0.6328626  2.6721442</span></span>
+<span><span class="co">#&gt; 5               3  0.4042683 -0.1344950</span></span>
+<span><span class="co">#&gt; 6               3 -0.1061245  0.1115741</span></span></code></pre></div>
 <p>This output is automatically formatted and ready to be plugged into
 <code><a href="../reference/doas.html">doas()</a></code> with matching covariate formulas:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
