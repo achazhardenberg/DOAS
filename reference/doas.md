@@ -13,7 +13,7 @@ dependent (2-pass removal/Zippin) double-observer field protocols.
 ``` r
 doas(
   data,
-  method = c("frequentist", "bayesian"),
+  method = c("ML", "Bayes", "frequentist", "bayesian"),
   obs_type = c("independent", "dependent"),
   pooling = c("hybrid", "global"),
   p_formula = NULL,
@@ -24,6 +24,9 @@ doas(
   iter = 2000,
   burnin = NULL
 )
+
+# S3 method for class 'doas'
+summary(object, ...)
 ```
 
 ## Arguments
@@ -43,12 +46,13 @@ doas(
 - method:
 
   Character string specifying the statistical inference paradigm: -
-  `"frequentist"` (default): Uses analytic Chapman (when
+  `"ML"` (default): Uses Maximum Likelihood / analytical Chapman (when
   `obs_type = "independent"`) or Zippin removal (when
-  `obs_type = "dependent"`) estimators and Delta-method variance. -
-  `"bayesian"`: Uses a multi-chain Collapsed Poisson-Gamma-Beta Gibbs
-  Sampler (MCMC) to sample the full joint posterior of detection
-  probabilities and abundance.
+  `obs_type = "dependent"`) estimators and Delta-method variance. Also
+  accepts `"frequentist"`. - `"Bayes"`: Uses a multi-chain Collapsed
+  Poisson-Gamma-Beta Gibbs Sampler (MCMC) to sample the full joint
+  posterior of detection probabilities and abundance. Also accepts
+  `"bayesian"`.
 
 - obs_type:
 
@@ -70,18 +74,17 @@ doas(
 - p_formula:
 
   Optional one-sided formula (e.g., `~ effort * ruggedness`) to model
-  detection probability \\\hat{p}\\ across sectors. For
-  `method = "frequentist"`, fits a quasi-binomial GLM; for
-  `method = "bayesian"`, runs a coupled multi-chain Bayesian logistic
-  regression via MCMC.
+  detection probability \\\hat{p}\\ across sectors. For `method = "ML"`,
+  fits a quasi-binomial GLM; for `method = "Bayes"`, runs a coupled
+  multi-chain Bayesian logistic regression via MCMC.
 
 - n_formula:
 
   Optional one-sided formula (e.g.,
   `~ elevation + habitat + offset(log(area))`) to model sector-level
   abundance \\\lambda_i\\ as a function of environmental covariates
-  (Quasi-Poisson log-link GLM in frequentist mode; Bayesian Poisson
-  log-linear regression in Bayesian mode). Enables
+  (Quasi-Poisson log-link GLM in ML mode; Bayesian Poisson log-linear
+  regression in Bayes mode). Enables
   [`predict.doas`](https://achazhardenberg.github.io/DOAS/reference/predict.doas.md)
   for new/unsurveyed sectors and habitat response curves.
 
@@ -89,10 +92,10 @@ doas(
 
   Character string specifying how to calculate Confidence/Credible
   Intervals: - `"lognormal"` (default): Uses the analytic Chao (1987)
-  log-normal approximation for frequentist estimators, or direct
-  posterior credible intervals from the MCMC draws when
-  `method = "bayesian"`. - `"bootstrap"`: Uses a non-parametric
-  stratified sector resampling bootstrap.
+  log-normal approximation for ML estimators, or direct posterior
+  credible intervals from the MCMC draws when `method = "Bayes"`. -
+  `"bootstrap"`: Uses a non-parametric stratified sector resampling
+  bootstrap.
 
 - R:
 
@@ -101,21 +104,28 @@ doas(
 
 - chains:
 
-  Integer number of Markov chains when `method = "bayesian"` (default
-  4).
+  Integer number of Markov chains when `method = "Bayes"` (default 4).
 
 - iter:
 
   Integer number of total MCMC iterations per chain when
-  `method = "bayesian"` (default 2000).
+  `method = "Bayes"` (default 2000).
 
 - burnin:
 
   Integer number of warm-up/burn-in iterations per chain when
-  `method = "bayesian"` (default `floor(iter / 4)`).
+  `method = "Bayes"` (default `floor(iter / 4)`).
+
+- object:
+
+  An object of class \`doas\`
+
+- ...:
+
+  Additional arguments
 
 ## Value
 
 A list of class \`doas\` containing the estimate, confidence/credible
-intervals, sector-level estimates, fitted submodels, and (when Bayesian)
+intervals, sector-level estimates, fitted submodels, and (when Bayes)
 MCMC convergence diagnostics.

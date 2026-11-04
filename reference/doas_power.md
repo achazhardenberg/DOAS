@@ -27,7 +27,7 @@ doas_power(
   covariates = NULL,
   cov_effect = 0,
   n_cov_effect = 0,
-  method = c("frequentist", "bayesian"),
+  method = c("ML", "Bayes", "frequentist", "bayesian"),
   obs_type = c("independent", "dependent"),
   pooling = c("hybrid", "global"),
   ci_method = c("lognormal", "bootstrap")
@@ -123,7 +123,8 @@ doas_power(
 
 - method:
 
-  Statistical inference paradigm (`"frequentist"` or `"bayesian"`).
+  Statistical inference paradigm (`"ML"`, `"Bayes"`, `"frequentist"`, or
+  `"bayesian"`). Default is `"ML"`.
 
 - obs_type:
 

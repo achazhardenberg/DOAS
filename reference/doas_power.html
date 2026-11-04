@@ -5,7 +5,7 @@ Supports multi-covariate simulation and modeling on detection (p_formula, p_beta
 and abundance (n_formula, n_betas)."><meta property="og:description" content="Runs multiple simulations to evaluate the statistical performance (bias,
 precision, coverage) of the DOAS estimator under varying sampling efforts.
 Supports multi-covariate simulation and modeling on detection (p_formula, p_betas)
-and abundance (n_formula, n_betas)."></head><body>
+and abundance (n_formula, n_betas)."><meta property="og:image" content="https://achazhardenberg.github.io/DOAS/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -13,7 +13,7 @@ and abundance (n_formula, n_betas)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">DOAS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,6 +23,7 @@ and abundance (n_formula, n_betas)."></head><body>
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/index.html">Articles</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/achazhardenberg/DOAS/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -33,8 +34,7 @@ and abundance (n_formula, n_betas)."></head><body>
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>DOAS Power Analysis</h1>
+      <img src="../logo.svg" class="logo" alt=""><h1>DOAS Power Analysis</h1>
       <small class="dont-index">Source: <a href="https://github.com/achazhardenberg/DOAS/blob/master/R/doas_power.R" class="external-link"><code>R/doas_power.R</code></a></small>
       <div class="d-none name"><code>doas_power.Rd</code></div>
     </div>
@@ -67,7 +67,7 @@ and abundance (<code>n_formula</code>, <code>n_betas</code>).</p>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cov_effect <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  n_cov_effect <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequentist"</span>, <span class="st">"bayesian"</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ML"</span>, <span class="st">"Bayes"</span>, <span class="st">"frequentist"</span>, <span class="st">"bayesian"</span><span class="op">)</span>,</span>
 <span>  obs_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"independent"</span>, <span class="st">"dependent"</span><span class="op">)</span>,</span>
 <span>  pooling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hybrid"</span>, <span class="st">"global"</span><span class="op">)</span>,</span>
 <span>  ci_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lognormal"</span>, <span class="st">"bootstrap"</span><span class="op">)</span></span>
@@ -151,7 +151,7 @@ and abundance (<code>n_formula</code>, <code>n_betas</code>).</p>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Statistical inference paradigm (<code>"frequentist"</code> or <code>"bayesian"</code>).</p></dd>
+<dd><p>Statistical inference paradigm (<code>"ML"</code>, <code>"Bayes"</code>, <code>"frequentist"</code>, or <code>"bayesian"</code>). Default is <code>"ML"</code>.</p></dd>
 
 
 <dt id="arg-obs-type">obs_type<a class="anchor" aria-label="anchor" href="#arg-obs-type"></a></dt>
