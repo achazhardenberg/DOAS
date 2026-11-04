@@ -10,3 +10,4 @@ simulation_*.R
 *.png
 !man/figures/*.png
 !docs/reference/figures/*.png
+!docs/logo.png
