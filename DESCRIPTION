@@ -2,25 +2,28 @@ Package: DOAS
 Type: Package
 Title: Double Observer Adjusted Survey Framework
 Version: 0.1.0
-Author:
-    person("Matteo", "Panaccio", email = "author@example.com", role = c("aut", "cre")),
+Authors@R: c(
+    person("Matteo", "Panaccio", role = "aut"),
     person("Alice", "Brambilla", role = "aut"),
     person("Bruno", "Bassano", role = "aut"),
     person("Tessa", "Smith", role = "aut"),
-    person("Achaz", "von Hardenberg", role = "aut") 
-Maintainer: Achaz von Hardenberg <author@example.com>
-Description: A framework to improve abundance estimations in mountain ungulates and other gregarious species 
-    combining block counts and double observer surveys with a reduced effort.
+    person("Achaz", "von Hardenberg", email = "a.vonhardenberg@chester.ac.uk", role = c("aut", "cre"))
+  )
+Description: Estimates wildlife population abundance in gregarious species by
+    combining standard block counts across all survey sectors with double-observer
+    (DO) surveys in a subset of sectors. Supports both frequentist (Chapman and
+    Zippin removal) and multi-chain Bayesian Markov Chain Monte Carlo (MCMC)
+    estimators under independent and dependent double-observer protocols, with
+    covariate modeling and simulation-based power analysis.
 License: GPL (>= 3)
 Encoding: UTF-8
 Imports: 
-    purrr,
     scales,
     truncnorm
-RoxygenNote: 7.3.3
 Suggests: 
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.1

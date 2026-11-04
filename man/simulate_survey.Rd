@@ -11,7 +11,8 @@ simulate_survey(
   det_group,
   obs_effect,
   detvar,
-  surv_areas
+  surv_areas,
+  cov_effect = 0
 )
 }
 \arguments{
@@ -28,13 +29,14 @@ simulate_survey(
 \item{detvar}{Standard deviation for detection probability across sectors.}
 
 \item{surv_areas}{Number of sectors to receive Double Observer surveys.}
+
+\item{cov_effect}{Optional numeric log-odds effect of a simulated standard-normal sector covariate
+(\code{covariate}) on detection probability (default \code{0}, meaning no covariate effect).}
 }
 \value{
-A data frame with one row per sector, containing observed counts and
-Double Observer tallies ready for input to \code{\link{doas}}.
+A data frame with one row per sector, containing observed counts,
+  Double Observer tallies, and a sector-level \code{covariate} column ready for input to \code{\link{doas}}.
 }
 \description{
-Simulates field sampling of a population by applying detection
-probabilities to the true population. A subset of sectors receive
-Double Observer (DO) surveys; the rest are standard block counts.
+Simulate a Survey and format for DOAS
 }

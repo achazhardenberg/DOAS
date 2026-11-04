@@ -2,3 +2,10 @@
 ^Meta$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^DOAS_script\.R$
+^manuscript$
+^debug_.*\.R$
+^simulation_.*\.R$
+^method_comparison\.png$
+^\.RData$
+^\.Rhistory$

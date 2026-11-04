@@ -6,11 +6,15 @@
 \usage{
 doas(
   data,
-  method = c("hybrid", "global"),
+  method = c("frequentist", "bayesian"),
+  obs_type = c("independent", "dependent"),
+  pooling = c("hybrid", "global"),
   formula = NULL,
   ci_method = c("lognormal", "bootstrap"),
   R = 1000,
-  obs_type = c("independent", "dependent", "bayesian")
+  chains = 4,
+  iter = 2000,
+  burnin = NULL
 )
 }
 \arguments{
@@ -24,32 +28,44 @@ doas(
   - \code{groups_both}: Number of groups seen by both observers.
   - \code{groups_obs1}: Number of groups seen by Observer 1 only.
   - \code{groups_obs2}: Number of groups seen by Observer 2 only.
-  If the groups_both, groups_obs1, and groups_obs2 columns are present and non-NA for a row, it is treated as a DO survey.
+  If \code{groups_both}, \code{groups_obs1}, and \code{groups_obs2} are present and non-NA for a row, it is treated as a DO survey.
   Otherwise it defaults to a standard Block count.}
 
-\item{method}{Character string specifying the estimation method.
-"hybrid" (default) uses the specific DO estimate for DO sectors and adjusts only Block sectors.
-"global" adjusts all sectors using the average detection probability.}
+\item{method}{Character string specifying the statistical inference paradigm:
+- \code{"frequentist"} (default): Uses analytic Chapman (when \code{obs_type = "independent"}) or Zippin removal (when \code{obs_type = "dependent"}) estimators and Delta-method variance.
+- \code{"bayesian"}: Uses a multi-chain Collapsed Poisson-Gamma-Beta Gibbs Sampler (MCMC) to sample the full joint posterior of detection probabilities and abundance.}
+
+\item{obs_type}{Character string specifying the field observer protocol:
+- \code{"independent"} (default): Both observers scan independently (Lincoln-Petersen / Chapman geometry).
+- \code{"dependent"}: Primary observer calls out detected groups and Secondary observer records only missed groups (2-pass removal / Zippin geometry).}
+
+\item{pooling}{Character string specifying how DO sector estimates are combined with Block sectors:
+- \code{"hybrid"} (default): Uses sector-specific DO estimates for DO sectors and extrapolates only Block sectors using the pooled/modeled primary detection probability.
+- \code{"global"}: Extrapolates all sectors using the pooled or covariate-modeled primary detection probability.}
 
 \item{formula}{Optional formula (e.g., \code{~ covariate1 + covariate2}) to model detection probability
-\code{\\hat{p}} across sectors. If provided, fits a quasi-binomial GLM on DO sectors and predicts
-specific detection probabilities for each Block sector.}
+\eqn{\hat{p}} across sectors. For \code{method = "frequentist"}, fits a quasi-binomial GLM; for
+\code{method = "bayesian"}, runs a coupled multi-chain Bayesian logistic regression via MCMC.}
 
-\item{ci_method}{Character string specifying how to calculate Confidence Intervals.
-"lognormal" (default) uses the analytic Delta Method variance and Chao (1987) log-normal approximation.
-"bootstrap" uses a non-parametric block resampling bootstrap.}
+\item{ci_method}{Character string specifying how to calculate Confidence/Credible Intervals:
+- \code{"lognormal"} (default): Uses the analytic Chao (1987) log-normal approximation for frequentist estimators, or direct posterior credible intervals from the MCMC draws when \code{method = "bayesian"}.
+- \code{"bootstrap"}: Uses a non-parametric stratified sector resampling bootstrap.}
 
 \item{R}{Integer indicating the number of bootstrap replicates (only used if \code{ci_method = "bootstrap"}). Default is 1000.}
 
-\item{obs_type}{Character string specifying the observer relationship.
-"independent" (default) uses the Chapman estimator assuming both observers scanned independently.
-"dependent" assumes Observer 1 points out all animals, and Observer 2 only records what Observer 1 missed, reducing to a Zippin Removal estimator.
-"bayesian" uses Monte Carlo simulation from Conjugate Beta-Binomial posteriors to naturally bound credible estimates avoiding normality assumptions.}
+\item{chains}{Integer number of Markov chains when \code{method = "bayesian"} (default 4).}
+
+\item{iter}{Integer number of total MCMC iterations per chain when \code{method = "bayesian"} (default 2000).}
+
+\item{burnin}{Integer number of warm-up/burn-in iterations per chain when \code{method = "bayesian"} (default \code{floor(iter / 4)}).}
 }
 \value{
-A list of class `doas` containing the estimate and intermediate calculations.
+A list of class `doas` containing the estimate, confidence/credible intervals, sector-level estimates, and (when Bayesian) MCMC convergence diagnostics.
 }
 \description{
 Estimates total population abundance using a combination of block counts
 in all sectors and Double Observer (DO) surveys in a subset of sectors.
+Supports both Frequentist and multi-chain Bayesian MCMC inference across
+independent (Lincoln-Petersen/Chapman) and dependent (2-pass removal/Zippin)
+double-observer field protocols.
 }
