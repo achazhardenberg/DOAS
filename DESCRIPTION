@@ -1,7 +1,7 @@
 Package: DOAS
 Type: Package
 Title: Double Observer Adjusted Survey Framework
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: person("Achaz", "von Hardenberg", email = "achaz.hardenberg@unipv.it", role = c("aut", "cre"))
 Description: Estimates wildlife population abundance in gregarious and solitary
     species by combining standard block counts across survey sectors with

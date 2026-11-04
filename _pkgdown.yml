@@ -8,8 +8,11 @@ template:
 
 navbar:
   structure:
-    left: [home, reference, articles]
+    left: [home, reference, articles, news]
     right: [search, github]
+
+news:
+  cran_dates: false
 
 articles:
   - title: "User Guide & Tutorials"

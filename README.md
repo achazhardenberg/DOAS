@@ -143,6 +143,6 @@ vignette("DOAS-tutorial", package = "DOAS")
 
 If you use `DOAS` in your research, please cite both the R package and the original methodological paper introducing the Double Observer Adjusted Survey framework:
 
-> von Hardenberg, A. (2026). *DOAS: Double Observer Adjusted Survey Framework*. R package version 0.1.0. https://github.com/achazhardenberg/DOAS
+> von Hardenberg, A. (2026). *DOAS: Double Observer Adjusted Survey Framework*. R package version 1.0.0. https://github.com/achazhardenberg/DOAS
 >
 > Panaccio, M., Brambilla, A., Bassano, B., Smith, T., & von Hardenberg, A. (2024). A new double observer-based census framework to improve abundance estimations in mountain ungulates and other gregarious species with a reduced effort. *Ecological Solutions and Evidence*, 5(4), e12405. https://doi.org/10.1002/2688-8319.12405
