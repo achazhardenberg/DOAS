@@ -46,17 +46,18 @@ For sectors that received a Double Observer survey, provide the following column
 
 ### Example Data
 
-Let's generate a 24-sector dataset using `simulate_pop()` and `simulate_survey()`, where 12 sectors receive Double Observer surveys and 12 receive single-observer block counts, with a simulated detection covariate (`covariate`, e.g. standardized survey effort) and a simulated abundance covariate (`habitat`, e.g. standardized elevation/habitat quality).
+Let's generate a 24-sector dataset using `simulate_pop()` and `simulate_survey()`, where 12 sectors receive Double Observer surveys and 12 receive single-observer block counts, with a simulated detection covariate (`effort`) and a simulated abundance covariate (`habitat`):
 
 ```{r setup-real-data}
 library(DOAS)
 
 set.seed(12)
 sim_pop_example <- simulate_pop(
-  pop_size     = 3500,
-  mean_group   = 8,
-  tot_areas    = 24,
-  n_cov_effect = 0.5
+  pop_size   = 3500,
+  mean_group = 8,
+  tot_areas  = 24,
+  n_formula  = ~ habitat,
+  n_betas    = c(habitat = 0.5)
 )
 
 my_survey_data <- simulate_survey(
@@ -67,7 +68,8 @@ my_survey_data <- simulate_survey(
   obs_effect      = 0.90,
   detvar          = 0.02,
   surv_areas      = 12,
-  cov_effect      = 1.0
+  p_formula       = ~ effort,
+  p_betas         = c(effort = 1.0)
 )
 
 head(my_survey_data)
@@ -101,15 +103,15 @@ print(inspected_data)
 ### Running the Estimator
 
 `doas()` separates the estimation setup into three intuitive arguments:
-- **`method`**: `"frequentist"` (default analytic Chapman/Zippin) or `"bayesian"` (multi-chain MCMC Gibbs sampler).
+- **`method`**: `"ML"` (default, Maximum Likelihood / analytical Chapman or Zippin removal) or `"Bayes"` (multi-chain Bayesian MCMC collapsed Gibbs sampler).
 - **`obs_type`**: `"independent"` (default, observers scan independently) or `"dependent"` (Observer 1 points out detected groups and Observer 2 records only missed groups).
 - **`pooling`**: `"hybrid"` (default, uses sector-specific DO estimates in DO sectors and extrapolates Block sectors) or `"global"` (extrapolates all sectors using the pooled primary detection probability).
 
 ```{r run-doas}
-# Default Frequentist estimation with Independent observers and Hybrid pooling
+# Default ML estimation with Independent observers and Hybrid pooling
 results <- doas(
   my_survey_data,
-  method = "frequentist",
+  method = "ML",
   obs_type = "independent",
   pooling = "hybrid"
 )
@@ -162,31 +164,31 @@ Notice that for solitary species, `est_groups` and `est_abundance` in `fit_solit
 
 If detection probability varies across sectors due to survey effort, visibility, habitat, or mean group size (`mean_group_size`, which is computed automatically inside `doas()`), you can pass a one-sided R formula to `p_formula`. You can also model sector-level abundance as a function of habitat covariates via `n_formula` and generate predictions with `predict()`:
 
-- **Frequentist (`method = "frequentist"`):** Fits a quasi-binomial logistic regression (`p_hat ~ covariates`, weighted by `G_est`) on the DO sectors (`p_formula`) and/or a quasi-Poisson log-link regression on detection-adjusted abundance (`n_formula`). Competing models can be compared using `QAIC()`.
-- **Bayesian (`method = "bayesian"`):** Runs a multi-chain Metropolis-within-Gibbs regression coupled to the posterior draws of latent group abundance $G_i$, reporting posterior means, standard deviations, 95% credible intervals, $\hat{R}$, and ESS for every regression coefficient.
+- **ML (`method = "ML"`, default):** Fits a quasi-binomial logistic regression (`p_hat ~ covariates`, weighted by `G_est`) on the DO sectors (`p_formula`) and/or a quasi-Poisson log-link regression on detection-adjusted abundance (`n_formula`). Competing models can be compared using `QAIC()`. (Also accepts `method = "frequentist"`).
+- **Bayes (`method = "Bayes"`):** Runs a multi-chain Metropolis-within-Gibbs regression coupled to the posterior draws of latent group abundance $G_i$, reporting posterior means, standard deviations, 95% credible intervals, $\hat{R}$, and ESS for every regression coefficient. (Also accepts `method = "bayesian"`).
 
 ```{r run-covariates}
-# Frequentist detection covariate model and abundance covariate model
-mod_effort <- doas(my_survey_data, method = "frequentist", p_formula = ~covariate, n_formula = ~habitat)
-mod_group <- doas(my_survey_data, method = "frequentist", p_formula = ~mean_group_size, n_formula = ~habitat)
+# ML detection covariate model and abundance covariate model
+mod_effort <- doas(my_survey_data, method = "ML", p_formula = ~effort, n_formula = ~habitat)
+mod_group <- doas(my_survey_data, method = "ML", p_formula = ~mean_group_size, n_formula = ~habitat)
 
 summary(mod_effort)
 
 # Predict detection probability or expected abundance for new sectors
-predict(mod_effort, newdata = data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "detection")
-predict(mod_effort, newdata = data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "abundance")
+predict(mod_effort, newdata = data.frame(effort = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "detection")
+predict(mod_effort, newdata = data.frame(effort = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "abundance")
 
 # Compare competing detection covariate models using Quasi-AIC (QAIC)
 QAIC(mod_effort, mod_group)
 ```
 
-You can also fit covariate models in the multi-chain Bayesian framework and compare them using the Widely Applicable Information Criterion (`WAIC()`):
+You can also fit covariate models in the multi-chain Bayesian framework (`method = "Bayes"`) and compare them using the Widely Applicable Information Criterion (`WAIC()`):
 
 ```{r run-bayes-covariates}
 set.seed(42)
 mod_bayes_null <- doas(
   my_survey_data,
-  method = "bayesian",
+  method = "Bayes",
   obs_type = "independent",
   chains = 4,
   iter = 1000
@@ -194,9 +196,9 @@ mod_bayes_null <- doas(
 
 mod_bayes_cov <- doas(
   my_survey_data,
-  method = "bayesian",
+  method = "Bayes",
   obs_type = "independent",
-  p_formula = ~covariate,
+  p_formula = ~effort,
   n_formula = ~habitat,
   chains = 4,
   iter = 1000

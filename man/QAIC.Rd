@@ -2,22 +2,33 @@
 % Please edit documentation in R/qaic.R
 \name{QAIC}
 \alias{QAIC}
+\alias{QAIC.doas}
 \title{Quasi-Akaike Information Criterion (QAIC)}
 \usage{
 QAIC(object, ...)
+
+\method{QAIC}{doas}(object, ...)
 }
 \arguments{
-\item{object}{A fitted model object (e.g., a frequentist `doas` model).}
+\item{object}{A fitted `doas` object with \code{method = "ML"} (or \code{"frequentist"}).}
 
-\item{...}{Optionally more fitted model objects for model comparison.}
+\item{...}{Optionally more fitted `doas` objects.}
 }
 \value{
 A numeric QAIC value, or a comparison data frame if multiple models are passed.
+
+A numeric QAIC value, or a data frame if multiple models are passed.
 }
 \description{
 Computes the Quasi-Akaike Information Criterion (QAIC; Burnham & Anderson 2002)
 for frequentist statistical models that handle overdispersion (such as quasi-binomial
 detection GLM models via \code{p_formula} or quasi-poisson abundance GLM models
 via \code{n_formula} in \code{\link{doas}}).
-For Bayesian MCMC models (\code{method = "bayesian"}), use \code{\link{WAIC}} instead.
+For Bayesian MCMC models (\code{method = "Bayes"}), use \code{\link{WAIC}} instead.
+
+Extracts the QAIC for frequentist/ML DOAS models that used a detection covariate formula
+(\code{p_formula}) or an abundance covariate formula (\code{n_formula}).
+Following Burnham & Anderson (2002), when comparing multiple candidate models, a single
+common variance inflation factor \eqn{\hat{c} = \max(1, \hat{c}_{\text{global}})} is
+estimated from the most parameterized model in the candidate set.
 }

@@ -40,7 +40,7 @@ test_that("doas computes hybrid and global frequentist estimates correctly", {
     res <- doas(data, method = "frequentist", obs_type = "independent", pooling = "hybrid")
 
     expect_s3_class(res, "doas")
-    expect_equal(res$method, "frequentist")
+    expect_equal(res$method, "ML")
     expect_equal(res$obs_type, "independent")
     expect_equal(res$pooling, "hybrid")
     expect_equal(res$num_do_sectors, 2)
@@ -75,7 +75,7 @@ test_that("doas computes frequentist dependent (Zippin) estimates correctly", {
     res_ind <- doas(data, method = "frequentist", obs_type = "independent")
 
     expect_s3_class(res_dep, "doas")
-    expect_equal(res_dep$method, "frequentist")
+    expect_equal(res_dep$method, "ML")
     expect_equal(res_dep$obs_type, "dependent")
     expect_false(res_dep$total_abundance == res_ind$total_abundance)
     expect_true(res_dep$total_abundance > 0)

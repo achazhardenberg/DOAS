@@ -67,7 +67,7 @@ and abundance (<code>n_formula</code>, <code>n_betas</code>).</p>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cov_effect <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  n_cov_effect <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frequentist"</span>, <span class="st">"bayesian"</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ML"</span>, <span class="st">"Bayes"</span>, <span class="st">"frequentist"</span>, <span class="st">"bayesian"</span><span class="op">)</span>,</span>
 <span>  obs_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"independent"</span>, <span class="st">"dependent"</span><span class="op">)</span>,</span>
 <span>  pooling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hybrid"</span>, <span class="st">"global"</span><span class="op">)</span>,</span>
 <span>  ci_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lognormal"</span>, <span class="st">"bootstrap"</span><span class="op">)</span></span>
@@ -151,7 +151,7 @@ and abundance (<code>n_formula</code>, <code>n_betas</code>).</p>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Statistical inference paradigm (<code>"frequentist"</code> or <code>"bayesian"</code>).</p></dd>
+<dd><p>Statistical inference paradigm (<code>"ML"</code>, <code>"Bayes"</code>, <code>"frequentist"</code>, or <code>"bayesian"</code>). Default is <code>"ML"</code>.</p></dd>
 
 
 <dt id="arg-obs-type">obs_type<a class="anchor" aria-label="anchor" href="#arg-obs-type"></a></dt>

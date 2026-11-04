@@ -61,8 +61,7 @@ and
 [`simulate_survey()`](https://achazhardenberg.github.io/DOAS/reference/simulate_survey.md),
 where 12 sectors receive Double Observer surveys and 12 receive
 single-observer block counts, with a simulated detection covariate
-(`covariate`, e.g. standardized survey effort) and a simulated abundance
-covariate (`habitat`, e.g. standardized elevation/habitat quality).
+(`effort`) and a simulated abundance covariate (`habitat`):
 
 ``` r
 
@@ -70,10 +69,11 @@ library(DOAS)
 
 set.seed(12)
 sim_pop_example <- simulate_pop(
-  pop_size     = 3500,
-  mean_group   = 8,
-  tot_areas    = 24,
-  n_cov_effect = 0.5
+  pop_size   = 3500,
+  mean_group = 8,
+  tot_areas  = 24,
+  n_formula  = ~ habitat,
+  n_betas    = c(habitat = 0.5)
 )
 
 my_survey_data <- simulate_survey(
@@ -84,7 +84,8 @@ my_survey_data <- simulate_survey(
   obs_effect      = 0.90,
   detvar          = 0.02,
   surv_areas      = 12,
-  cov_effect      = 1.0
+  p_formula       = ~ effort,
+  p_betas         = c(effort = 1.0)
 )
 
 head(my_survey_data)
@@ -95,7 +96,7 @@ head(my_survey_data)
 #> 4         4          57          NA          NA          NA               7
 #> 5         5          20           0           0           1               1
 #> 6         6          97           5           3           5              13
-#>      habitat  covariate
+#>      habitat     effort
 #> 1 -1.4805676 -0.3560288
 #> 2  1.5771695 -1.3522702
 #> 3 -0.9567445 -0.5747150
@@ -150,21 +151,21 @@ print(inspected_data)
 
 [`doas()`](https://achazhardenberg.github.io/DOAS/reference/doas.md)
 separates the estimation setup into three intuitive arguments: -
-**`method`**: `"frequentist"` (default analytic Chapman/Zippin) or
-`"bayesian"` (multi-chain MCMC Gibbs sampler). - **`obs_type`**:
-`"independent"` (default, observers scan independently) or `"dependent"`
-(Observer 1 points out detected groups and Observer 2 records only
-missed groups). - **`pooling`**: `"hybrid"` (default, uses
-sector-specific DO estimates in DO sectors and extrapolates Block
-sectors) or `"global"` (extrapolates all sectors using the pooled
-primary detection probability).
+**`method`**: `"ML"` (default, Maximum Likelihood / analytical Chapman
+or Zippin removal) or `"Bayes"` (multi-chain Bayesian MCMC collapsed
+Gibbs sampler). - **`obs_type`**: `"independent"` (default, observers
+scan independently) or `"dependent"` (Observer 1 points out detected
+groups and Observer 2 records only missed groups). - **`pooling`**:
+`"hybrid"` (default, uses sector-specific DO estimates in DO sectors and
+extrapolates Block sectors) or `"global"` (extrapolates all sectors
+using the pooled primary detection probability).
 
 ``` r
 
-# Default Frequentist estimation with Independent observers and Hybrid pooling
+# Default ML estimation with Independent observers and Hybrid pooling
 results <- doas(
   my_survey_data,
-  method = "frequentist",
+  method = "ML",
   obs_type = "independent",
   pooling = "hybrid"
 )
@@ -174,7 +175,7 @@ summary(results)
 #>   Double Observer Adjusted Survey (DOAS) Estimation  
 #> ====================================================
 #> 
-#> Inference Method: Frequentist Independent (Chapman)
+#> Inference Method: Maximum Likelihood / Analytical (Chapman)
 #> Sector Pooling:   Hybrid
 #> Total sectors: 24
 #> Double Observer (DO) sectors: 12 (Independent)
@@ -311,7 +312,7 @@ summary(fit_solitary)
 #>   Double Observer Adjusted Survey (DOAS) Estimation  
 #> ====================================================
 #> 
-#> Inference Method: Frequentist Independent (Chapman)
+#> Inference Method: Maximum Likelihood / Analytical (Chapman)
 #> Sector Pooling:   Hybrid
 #> Detection Formula (p_formula): p_hat ~ruggedness
 #> Total sectors: 8
@@ -355,32 +356,33 @@ sector-level abundance as a function of habitat covariates via
 `n_formula` and generate predictions with
 [`predict()`](https://rdrr.io/r/stats/predict.html):
 
-- **Frequentist (`method = "frequentist"`):** Fits a quasi-binomial
-  logistic regression (`p_hat ~ covariates`, weighted by `G_est`) on the
-  DO sectors (`p_formula`) and/or a quasi-Poisson log-link regression on
+- **ML (`method = "ML"`, default):** Fits a quasi-binomial logistic
+  regression (`p_hat ~ covariates`, weighted by `G_est`) on the DO
+  sectors (`p_formula`) and/or a quasi-Poisson log-link regression on
   detection-adjusted abundance (`n_formula`). Competing models can be
   compared using
   [`QAIC()`](https://achazhardenberg.github.io/DOAS/reference/QAIC.md).
-- **Bayesian (`method = "bayesian"`):** Runs a multi-chain
+  (Also accepts `method = "frequentist"`).
+- **Bayes (`method = "Bayes"`):** Runs a multi-chain
   Metropolis-within-Gibbs regression coupled to the posterior draws of
   latent group abundance $`G_i`$, reporting posterior means, standard
   deviations, 95% credible intervals, $`\hat{R}`$, and ESS for every
-  regression coefficient.
+  regression coefficient. (Also accepts `method = "bayesian"`).
 
 ``` r
 
-# Frequentist detection covariate model and abundance covariate model
-mod_effort <- doas(my_survey_data, method = "frequentist", p_formula = ~covariate, n_formula = ~habitat)
-mod_group <- doas(my_survey_data, method = "frequentist", p_formula = ~mean_group_size, n_formula = ~habitat)
+# ML detection covariate model and abundance covariate model
+mod_effort <- doas(my_survey_data, method = "ML", p_formula = ~effort, n_formula = ~habitat)
+mod_group <- doas(my_survey_data, method = "ML", p_formula = ~mean_group_size, n_formula = ~habitat)
 
 summary(mod_effort)
 #> 
 #>   Double Observer Adjusted Survey (DOAS) Estimation  
 #> ====================================================
 #> 
-#> Inference Method: Frequentist Independent (Chapman)
+#> Inference Method: Maximum Likelihood / Analytical (Chapman)
 #> Sector Pooling:   Hybrid
-#> Detection Formula (p_formula): p_hat ~covariate
+#> Detection Formula (p_formula): p_hat ~effort
 #> Abundance Formula (n_formula): N_hat ~habitat
 #> Total sectors: 24
 #> Double Observer (DO) sectors: 12 (Independent)
@@ -388,7 +390,7 @@ summary(mod_effort)
 #> Detection Probability Model (p_formula GLM):
 #>               Estimate Std. Error   t value   Pr(>|t|)
 #> (Intercept) 0.07503245  0.1610263 0.4659641 0.65122509
-#> covariate   0.84717674  0.3173853 2.6692377 0.02352331
+#> effort      0.84717674  0.3173853 2.6692377 0.02352331
 #> 
 #> Sector Abundance Model (n_formula GLM):
 #>              Estimate Std. Error   t value     Pr(>|t|)
@@ -428,12 +430,12 @@ summary(mod_effort)
 #> ----------------------------------------------------
 
 # Predict detection probability or expected abundance for new sectors
-predict(mod_effort, newdata = data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "detection")
+predict(mod_effort, newdata = data.frame(effort = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "detection")
 #>         fit         se  ci_lower  ci_upper
 #> 1 0.3160154 0.07680297 0.1871589 0.4810813
 #> 2 0.5187493 0.04019996 0.4401437 0.5964377
 #> 3 0.7154920 0.07256428 0.5556502 0.8349180
-predict(mod_effort, newdata = data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "abundance")
+predict(mod_effort, newdata = data.frame(effort = c(-1, 0, 1), habitat = c(-1, 0, 1)), type = "abundance")
 #>         fit        se  ci_lower ci_upper
 #> 1  83.17508  8.337939  68.33802 101.2335
 #> 2 131.57116  8.435043 116.03502 149.1875
@@ -447,7 +449,8 @@ QAIC(mod_effort, mod_group)
 ```
 
 You can also fit covariate models in the multi-chain Bayesian framework
-and compare them using the Widely Applicable Information Criterion
+(`method = "Bayes"`) and compare them using the Widely Applicable
+Information Criterion
 ([`WAIC()`](https://achazhardenberg.github.io/DOAS/reference/WAIC.md)):
 
 ``` r
@@ -455,7 +458,7 @@ and compare them using the Widely Applicable Information Criterion
 set.seed(42)
 mod_bayes_null <- doas(
   my_survey_data,
-  method = "bayesian",
+  method = "Bayes",
   obs_type = "independent",
   chains = 4,
   iter = 1000
@@ -463,9 +466,9 @@ mod_bayes_null <- doas(
 
 mod_bayes_cov <- doas(
   my_survey_data,
-  method = "bayesian",
+  method = "Bayes",
   obs_type = "independent",
-  p_formula = ~covariate,
+  p_formula = ~effort,
   n_formula = ~habitat,
   chains = 4,
   iter = 1000
@@ -478,7 +481,7 @@ summary(mod_bayes_cov)
 #> 
 #> Inference Method: Bayesian MCMC Independent
 #> Sector Pooling:   Hybrid
-#> Detection Formula (p_formula): p_hat ~covariate
+#> Detection Formula (p_formula): p_hat ~effort
 #> Abundance Formula (n_formula): N_hat ~habitat
 #> Total sectors: 24
 #> Double Observer (DO) sectors: 12 (Independent)
@@ -488,7 +491,7 @@ summary(mod_bayes_cov)
 #> Bayesian Logistic Regression Posterior (Detection p_formula):
 #>              Mean    SD CI_2.5 CI_97.5  Rhat ESS
 #> (Intercept) 0.141 0.173 -0.184   0.479 1.006 297
-#> covariate   0.648 0.320  0.048   1.259 1.007 300
+#> effort      0.648 0.320  0.048   1.259 1.007 300
 #> 
 #> Bayesian Log-Linear Regression Posterior (Abundance n_formula):
 #>              Mean    SD CI_2.5 CI_97.5  Rhat ESS
@@ -603,7 +606,7 @@ summary(fit_offset_freq)
 #>   Double Observer Adjusted Survey (DOAS) Estimation  
 #> ====================================================
 #> 
-#> Inference Method: Frequentist Independent (Chapman)
+#> Inference Method: Maximum Likelihood / Analytical (Chapman)
 #> Sector Pooling:   Hybrid
 #> Detection Formula (p_formula): p_hat ~fatigue
 #> Abundance Formula (n_formula): N_hat ~offset(log(transect_length)) + habitat
@@ -846,7 +849,7 @@ summary(sim_results)
 #>   Double Observer Adjusted Survey (DOAS) Estimation  
 #> ====================================================
 #> 
-#> Inference Method: Frequentist Independent (Chapman)
+#> Inference Method: Maximum Likelihood / Analytical (Chapman)
 #> Sector Pooling:   Hybrid
 #> Detection Formula (p_formula): p_hat ~elevation + effort
 #> Abundance Formula (n_formula): N_hat ~elevation

@@ -108,7 +108,7 @@ run_single_power_sim <- function(
 #' @param covariates Optional data frame of sector-level covariates.
 #' @param cov_effect Numeric log-odds effect of a single simulated detection covariate (\code{covariate}) (retained for backward compatibility).
 #' @param n_cov_effect Numeric log-linear effect of a single simulated abundance covariate (\code{habitat}) (retained for backward compatibility).
-#' @param method Statistical inference paradigm (\code{"frequentist"} or \code{"bayesian"}).
+#' @param method Statistical inference paradigm (\code{"ML"}, \code{"Bayes"}, \code{"frequentist"}, or \code{"bayesian"}). Default is \code{"ML"}.
 #' @param obs_type Observer field protocol (\code{"independent"} or \code{"dependent"}).
 #' @param pooling Sector pooling strategy (\code{"hybrid"} or \code{"global"}).
 #' @param ci_method Confidence interval method (\code{"lognormal"} or \code{"bootstrap"}).
@@ -142,12 +142,17 @@ doas_power <- function(
     covariates = NULL,
     cov_effect = 0,
     n_cov_effect = 0,
-    method = c("frequentist", "bayesian"),
+    method = c("ML", "Bayes", "frequentist", "bayesian"),
     obs_type = c("independent", "dependent"),
     pooling = c("hybrid", "global"),
     ci_method = c("lognormal", "bootstrap")
 ) {
     method <- match.arg(method)
+    if (method %in% c("frequentist", "ML")) {
+        method <- "ML"
+    } else {
+        method <- "Bayes"
+    }
     obs_type <- match.arg(obs_type)
     pooling <- match.arg(pooling)
     ci_method <- match.arg(ci_method)

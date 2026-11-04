@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 518 600" width="518" height="600">
+  <defs>
+    <!-- Hexagon clip path -->
+    <clipPath id="hex-clip">
+      <polygon points="259.0,25.0 497.2,162.5 497.2,437.5 259.0,575.0 20.8,437.5 20.8,162.5" />
+    </clipPath>
+
+    <!-- Deep alpine twilight gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#09182b"/>
+      <stop offset="35%" stop-color="#132e48"/>
+      <stop offset="70%" stop-color="#1b4965"/>
+      <stop offset="100%" stop-color="#0b1724"/>
+    </linearGradient>
+
+    <!-- Observer 1 teal radial glow -->
+    <radialGradient id="obs1-glow" cx="45%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#48cae4" stop-opacity="0.45"/>
+      <stop offset="65%" stop-color="#0096c7" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0077b6" stop-opacity="0.0"/>
+    </radialGradient>
+
+    <!-- Observer 2 amber radial glow -->
+    <radialGradient id="obs2-glow" cx="55%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#ffb703" stop-opacity="0.45"/>
+      <stop offset="65%" stop-color="#fb8500" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#d90429" stop-opacity="0.0"/>
+    </radialGradient>
+
+    <!-- Overlap illumination -->
+    <radialGradient id="overlap-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#90e0ef" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#00b4d8" stop-opacity="0.0"/>
+    </radialGradient>
+
+    <!-- Golden border gradient -->
+    <linearGradient id="border-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="30%" stop-color="#f4a261"/>
+      <stop offset="70%" stop-color="#e76f51"/>
+      <stop offset="100%" stop-color="#e9c46a"/>
+    </linearGradient>
+
+    <!-- Glow filter for DOAS text -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Hexagon Container with Clip -->
+  <g clip-path="url(#hex-clip)">
+    <!-- Background -->
+    <polygon points="259.0,25.0 497.2,162.5 497.2,437.5 259.0,575.0 20.8,437.5 20.8,162.5" fill="url(#bg-grad)" />
+
+    <!-- Mountain Silhouettes -->
+    <!-- Distant peaks -->
+    <path d="M 10,410 L 95,285 L 165,340 L 259,235 L 355,330 L 420,265 L 505,370 L 505,450 L 10,450 Z" fill="#0c2338" opacity="0.6"/>
+    <!-- Mid-range peaks -->
+    <path d="M 10,430 L 130,335 L 210,385 L 290,305 L 390,395 L 505,310 L 505,490 L 10,490 Z" fill="#081827" opacity="0.8"/>
+
+    <!-- Subtle Survey Sectors Hexagonal Mesh in Background -->
+    <g stroke="#ffffff" stroke-width="0.75" stroke-opacity="0.07" fill="none">
+      <polygon points="170,250 200,233 230,250 230,285 200,302 170,285" />
+      <polygon points="230,250 260,233 290,250 290,285 260,302 230,285" />
+      <polygon points="290,250 320,233 350,250 350,285 320,302 290,285" />
+      <polygon points="200,302 230,285 260,302 260,337 230,354 200,337" />
+      <polygon points="260,302 290,285 320,302 320,337 290,354 260,337" />
+    </g>
+
+    <!-- ==================== THE TWO OBSERVER DETECTION FIELDS ==================== -->
+    <!-- Observer 1 Field (Left: Cyan/Teal) -->
+    <g id="obs1-field">
+      <circle cx="205" cy="325" r="115" fill="url(#obs1-glow)" />
+      <circle cx="205" cy="325" r="115" fill="none" stroke="#48cae4" stroke-width="2.2" stroke-dasharray="6,5" stroke-opacity="0.85" />
+    </g>
+
+    <!-- Observer 2 Field (Right: Warm Amber/Orange) -->
+    <g id="obs2-field">
+      <circle cx="313" cy="325" r="115" fill="url(#obs2-glow)" />
+      <circle cx="313" cy="325" r="115" fill="none" stroke="#f77f00" stroke-width="2.2" stroke-dasharray="6,5" stroke-opacity="0.85" />
+    </g>
+
+    <!-- Overlap / Joint Detection Zone (Chapman calibration area) -->
+    <!-- Intersection path of the two circles: cx1=205, cx2=313, cy=325, r=115, distance=108 -->
+    <!-- Height of intersection: h = sqrt(115^2 - 54^2) = sqrt(13225 - 2916) = sqrt(10309) ~ 101.5 -->
+    <!-- Overlap reaches from y = 325-101.5 = 223.5 to y = 325+101.5 = 426.5, center x = 259 -->
+    <path d="M 259,223.5 A 115 115 0 0 1 259,426.5 A 115 115 0 0 1 259,223.5 Z" 
+          fill="url(#overlap-glow)" />
+    <path d="M 259,223.5 A 115 115 0 0 1 259,426.5 A 115 115 0 0 1 259,223.5 Z" 
+          fill="none" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.5" />
+
+    <!-- Crosshair / Reticle in Overlap Center indicating Calibration -->
+    <g stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.4">
+      <line x1="259" y1="305" x2="259" y2="345" />
+      <line x1="239" y1="325" x2="279" y2="325" />
+      <circle cx="259" cy="325" r="8" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.3"/>
+    </g>
+
+    <!-- Rocky Mountain Foreland / Crags for animals to stand on -->
+    <path d="M 10,480 Q 90,430 170,425 T 259,410 T 360,420 T 505,470 L 505,575 L 10,575 Z" fill="#06121c"/>
+    <!-- Foreground sharp outcrop where central ibex stands -->
+    <polygon points="225,418 259,380 295,418 285,445 235,445" fill="#0b1e2c"/>
+    <polyline points="225,418 259,380 295,418" stroke="#48cae4" stroke-width="1.2" stroke-opacity="0.3" fill="none"/>
+
+    <!-- ==================== WILDLIFE SILHOUETTES (ALPINE IBEX) ==================== -->
+    
+    <!-- 1. CENTRAL IBEX: Detected by BOTH Observers (n11) standing proudly in Overlap -->
+    <!-- Scaled and positioned at (259, 380) -->
+    <g id="ibex-central" transform="translate(242, 290) scale(0.38)">
+      <!-- Magnificent Ibex with large curved ridged horn -->
+      <!-- Body & Head -->
+      <path d="M 38,180 
+               L 40,140 Q 42,115 50,105 Q 60,95 72,96 L 78,82 Q 80,72 85,68 
+               Q 90,65 96,68 L 100,75 L 94,86 Q 95,94 92,106 Q 84,124 82,145 
+               L 88,180 L 80,180 L 75,150 L 52,150 L 46,180 Z" fill="#ffffff" />
+      <!-- Legs & Stance -->
+      <path d="M 40,140 Q 32,142 26,148 L 16,180 L 23,180 L 32,155 L 42,155 Z" fill="#ffffff"/>
+      <path d="M 68,145 L 72,180 L 79,180 L 76,145 Z" fill="#ffffff"/>
+      <!-- Sweeping Majestic Alpine Ibex Horn with ridges -->
+      <path d="M 86,68 
+               C 84,45 74,20 54,6 
+               C 38,-4 22,-3 10,5 
+               C 2,12 -3,22 0,28 
+               C 4,32 10,28 14,21 
+               C 24,14 36,12 48,19 
+               C 62,28 70,48 76,69 Z" fill="#ffffff"/>
+      <!-- Horn ridges/knots -->
+      <circle cx="50" cy="19" r="2.5" fill="#1b4965"/>
+      <circle cx="38" cy="13" r="2.2" fill="#1b4965"/>
+      <circle cx="26" cy="11" r="2.0" fill="#1b4965"/>
+      <circle cx="16" cy="13" r="1.8" fill="#1b4965"/>
+      <!-- Beard -->
+      <polygon points="98,82 105,94 99,92" fill="#ffffff"/>
+    </g>
+
+    <!-- 2. LEFT IBEX: Detected by Observer 1 ONLY (Seen in teal light) -->
+    <g id="ibex-obs1" transform="translate(142, 332) scale(0.24)">
+      <path d="M 38,180 L 40,140 Q 42,115 50,105 Q 60,95 72,96 L 78,82 Q 80,72 85,68 Q 90,65 96,68 L 100,75 L 94,86 Q 95,94 92,106 Q 84,124 82,145 L 88,180 L 80,180 L 75,150 L 52,150 L 46,180 Z" fill="#ade8f4" />
+      <path d="M 40,140 Q 32,142 26,148 L 16,180 L 23,180 L 32,155 L 42,155 Z" fill="#ade8f4"/>
+      <path d="M 86,68 C 84,45 74,20 54,6 C 38,-4 22,-3 10,5 C 2,12 -3,22 0,28 C 4,32 10,28 14,21 C 24,14 36,12 48,19 C 62,28 70,48 76,69 Z" fill="#ade8f4"/>
+    </g>
+
+    <!-- 3. RIGHT IBEX: Detected by Observer 2 ONLY (Seen in amber light) -->
+    <!-- Grazing / walking facing right -->
+    <g id="ibex-obs2" transform="translate(390, 342) scale(-0.24, 0.24)">
+      <path d="M 38,180 L 40,140 Q 42,115 50,105 Q 60,95 72,96 L 78,82 Q 80,72 85,68 Q 90,65 96,68 L 100,75 L 94,86 Q 95,94 92,106 Q 84,124 82,145 L 88,180 L 80,180 L 75,150 L 52,150 L 46,180 Z" fill="#fed9b7" />
+      <path d="M 40,140 Q 32,142 26,148 L 16,180 L 23,180 L 32,155 L 42,155 Z" fill="#fed9b7"/>
+      <path d="M 86,68 C 84,45 74,20 54,6 C 38,-4 22,-3 10,5 C 2,12 -3,22 0,28 C 4,32 10,28 14,21 C 24,14 36,12 48,19 C 62,28 70,48 76,69 Z" fill="#fed9b7"/>
+    </g>
+
+    <!-- 4. GHOST IBEX: Undetected (Outside both circles, p < 1) on distant ridge -->
+    <!-- Dotted / semi-transparent silhouette representing animals missed by both and estimated by DOAS -->
+    <g id="ibex-missed" transform="translate(378, 222) scale(0.18)" opacity="0.42">
+      <path d="M 38,180 L 40,140 Q 42,115 50,105 Q 60,95 72,96 L 78,82 Q 80,72 85,68 Q 90,65 96,68 L 100,75 L 94,86 Q 95,94 92,106 Q 84,124 82,145 L 88,180 L 80,180 L 75,150 L 52,150 L 46,180 Z" 
+            fill="none" stroke="#90e0ef" stroke-width="4" stroke-dasharray="8,6" />
+      <path d="M 86,68 C 84,45 74,20 54,6 C 38,-4 22,-3 10,5 C 2,12 -3,22 0,28 C 4,32 10,28 14,21 C 24,14 36,12 48,19 C 62,28 70,48 76,69 Z" 
+            fill="none" stroke="#90e0ef" stroke-width="4" stroke-dasharray="8,6" />
+      <!-- Subtle estimation symbol (N̂ - n) -->
+      <text x="110" y="50" font-family="'Courier New', monospace" font-size="34" font-weight="bold" fill="#48cae4">?</text>
+    </g>
+
+    <!-- Observer Labels / Badges -->
+    <!-- Observer 1 Badge -->
+    <rect x="116" y="222" width="68" height="20" rx="10" fill="#0077b6" fill-opacity="0.75" stroke="#48cae4" stroke-width="1"/>
+    <text x="150" y="236" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">OBS 1</text>
+    <text x="150" y="254" font-family="'Cambria Math', 'Times New Roman', serif" font-size="11" font-style="italic" fill="#90e0ef" text-anchor="middle">p₁</text>
+
+    <!-- Observer 2 Badge -->
+    <rect x="334" y="222" width="68" height="20" rx="10" fill="#c15c00" fill-opacity="0.75" stroke="#f77f00" stroke-width="1"/>
+    <text x="368" y="236" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">OBS 2</text>
+    <text x="368" y="254" font-family="'Cambria Math', 'Times New Roman', serif" font-size="11" font-style="italic" fill="#ffdda1" text-anchor="middle">p₂</text>
+
+    <!-- Overlap Joint Calibration Note -->
+    <text x="259" y="372" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1.2" opacity="0.95">BOTH</text>
+    <text x="259" y="384" font-family="'Cambria Math', 'Times New Roman', serif" font-size="9.5" font-style="italic" fill="#caf0f8" text-anchor="middle" opacity="0.85">p₁₂ = p₁ · p₂</text>
+
+    <!-- ==================== TYPOGRAPHY ==================== -->
+    <!-- Package Name: DOAS at Top -->
+    <g id="brand-text">
+      <text x="259" y="118" 
+            font-family="'Montserrat', 'Futura', 'Trebuchet MS', 'Arial Black', sans-serif" 
+            font-size="54" 
+            font-weight="900" 
+            fill="#ffffff" 
+            text-anchor="middle" 
+            letter-spacing="6px" 
+            filter="url(#glow)">DOAS</text>
+      
+      <!-- Subtitle: DOUBLE OBSERVER ADJUSTED SURVEY -->
+      <text x="259" y="142" 
+            font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+            font-size="10.5" 
+            font-weight="700" 
+            fill="#48cae4" 
+            text-anchor="middle" 
+            letter-spacing="2.8px">DOUBLE OBSERVER ADJUSTED SURVEY</text>
+      
+      <!-- Decorative separator line under title -->
+      <line x1="175" y1="152" x2="343" y2="152" stroke="#48cae4" stroke-width="1" stroke-opacity="0.4" />
+      <polygon points="259,149 262,152 259,155 256,152" fill="#48cae4" opacity="0.8"/>
+    </g>
+
+    <!-- Bottom Mathematical / Methodological Footer -->
+    <g id="footer-formula">
+      <!-- Translucent pill for formula -->
+      <rect x="145" y="500" width="228" height="26" rx="13" fill="#06121c" fill-opacity="0.85" stroke="#f4a261" stroke-width="1" stroke-opacity="0.5"/>
+      <text x="259" y="517" 
+            font-family="'Cambria Math', 'Times New Roman', serif" 
+            font-size="12" 
+            font-weight="bold" 
+            fill="#ffffff" 
+            text-anchor="middle" 
+            letter-spacing="1px">
+        N̂ = <tspan fill="#48cae4">C</tspan> / <tspan fill="#f77f00">p̂</tspan> · <tspan font-style="italic" font-weight="normal" fill="#e9c46a">Bayesian &amp; Chapman</tspan>
+      </text>
+    </g>
+
+  </g>
+
+  <!-- ==================== HEXAGON BORDER ==================== -->
+  <polygon points="259.0,25.0 497.2,162.5 497.2,437.5 259.0,575.0 20.8,437.5 20.8,162.5" 
+           fill="none" 
+           stroke="url(#border-grad)" 
+           stroke-width="13" 
+           stroke-linejoin="round" />
+  
+  <!-- Subtle inner neon stroke -->
+  <polygon points="259.0,33.0 490.2,166.5 490.2,433.5 259.0,567.0 27.8,433.5 27.8,166.5" 
+           fill="none" 
+           stroke="#ffffff" 
+           stroke-width="1.5" 
+           stroke-opacity="0.4" 
+           stroke-linejoin="round" />
+</svg>

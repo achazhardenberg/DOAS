@@ -13,7 +13,7 @@ test_that("doas with p_formula computes covariate models correctly", {
     res <- doas(data, p_formula = ~effort)
 
     expect_s3_class(res, "doas")
-    expect_equal(res$method, "frequentist")
+    expect_equal(res$method, "ML")
     expect_equal(res$pooling, "hybrid")
     expect_equal(res$num_do_sectors, 3)
     expect_s3_class(res$model, "glm")

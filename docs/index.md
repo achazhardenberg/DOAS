@@ -129,7 +129,13 @@ library(DOAS)
 # 1. Simulate a 24-sector population (~3500 animals) with a habitat effect on abundance,
 #    and a partial DOAS survey (12 DO sectors, 12 Block sectors) with an effort effect on detection
 set.seed(12)
-pop <- simulate_pop(pop_size = 3500, mean_group = 8, tot_areas = 24, n_cov_effect = 0.5)
+pop <- simulate_pop(
+  pop_size   = 3500,
+  mean_group = 8,
+  tot_areas  = 24,
+  n_formula  = ~ habitat,
+  n_betas    = c(habitat = 0.5)
+)
 raw_data <- simulate_survey(
   sim_pop         = pop,
   det_p1          = 0.55,
@@ -138,44 +144,45 @@ raw_data <- simulate_survey(
   obs_effect      = 0.90,
   detvar          = 0.02,
   surv_areas      = 12,
-  cov_effect      = 1.0
+  p_formula       = ~ effort,
+  p_betas         = c(effort = 1.0)
 )
 
 survey_dat <- doas_data(raw_data, format = "sector")
 print(head(survey_dat))
 
-# 2. Frequentist Hybrid Estimation (Detection & Abundance Covariates)
-fit_freq_cov <- doas(
+# 2. Maximum Likelihood (ML) Estimation (Detection & Abundance Covariates)
+fit_ml_cov <- doas(
   survey_dat,
-  method    = "frequentist",
+  method    = "ML",
   obs_type  = "independent",
   pooling   = "hybrid",
-  p_formula = ~ covariate,
+  p_formula = ~ effort,
   n_formula = ~ habitat
 )
 
-fit_freq_hab <- doas(
+fit_ml_null <- doas(
   survey_dat,
-  method    = "frequentist",
+  method    = "ML",
   obs_type  = "independent",
   pooling   = "hybrid",
-  p_formula = ~ habitat,
+  p_formula = ~ 1,
   n_formula = ~ habitat
 )
 
-summary(fit_freq_cov)
+summary(fit_ml_cov)
 cat("True simulated population:", pop$tot_pop, "\n")
-QAIC(fit_freq_cov, fit_freq_hab)
+QAIC(fit_ml_cov, fit_ml_null)
 
 # Predict detection probability and expected abundance across a covariate gradient
-new_sectors <- data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1))
-predict(fit_freq_cov, newdata = new_sectors, type = "detection")
-predict(fit_freq_cov, newdata = new_sectors, type = "abundance")
+new_sectors <- data.frame(effort = c(-1, 0, 1), habitat = c(-1, 0, 1))
+predict(fit_ml_cov, newdata = new_sectors, type = "detection")
+predict(fit_ml_cov, newdata = new_sectors, type = "abundance")
 
 # 3. Multi-Chain Hierarchical Bayesian Estimation & WAIC Selection
 fit_bayes_null <- doas(
   survey_dat,
-  method   = "bayesian",
+  method   = "Bayes",
   obs_type = "independent",
   pooling  = "hybrid",
   chains   = 3,
@@ -185,10 +192,10 @@ fit_bayes_null <- doas(
 
 fit_bayes_cov <- doas(
   survey_dat,
-  method    = "bayesian",
+  method    = "Bayes",
   obs_type  = "independent",
   pooling   = "hybrid",
-  p_formula = ~ covariate,
+  p_formula = ~ effort,
   n_formula = ~ habitat,
   chains    = 3,
   iter      = 2000,

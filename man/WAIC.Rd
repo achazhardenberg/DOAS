@@ -2,25 +2,34 @@
 % Please edit documentation in R/qaic.R
 \name{WAIC}
 \alias{WAIC}
+\alias{WAIC.doas}
 \title{Widely Applicable Information Criterion (WAIC)}
 \usage{
 WAIC(object, ...)
+
+\method{WAIC}{doas}(object, ...)
 }
 \arguments{
-\item{object}{A fitted Bayesian `doas` model object (\code{method = "bayesian"}).}
+\item{object}{A fitted `doas` object with \code{method = "Bayes"} (or \code{"bayesian"}).}
 
-\item{...}{Optionally more fitted Bayesian `doas` model objects for model comparison.}
+\item{...}{Optionally more fitted Bayesian `doas` objects.}
 }
 \value{
 If a single model is provided, a numeric scalar WAIC value (with attributes
   \code{lppd}, \code{p_WAIC}, and \code{SE}). If multiple models are provided, a sorted
   comparison data frame with columns \code{lppd}, \code{p_WAIC}, \code{WAIC}, \code{SE},
   and \code{delta_WAIC}.
+
+A numeric WAIC value (for a single model) or a comparison data frame (for multiple models).
 }
 \description{
 Computes the Watanabe-Akaike (Widely Applicable) Information Criterion (WAIC;
 Watanabe 2010; Gelman, Hwang & Vehtari 2014) from the full pointwise posterior
-log-likelihood draws of Bayesian MCMC \code{\link{doas}} models (\code{method = "bayesian"}).
+log-likelihood draws of Bayesian MCMC \code{\link{doas}} models (\code{method = "Bayes"}).
 Can compare both detection covariate models (\code{p_formula = ~ ...}), abundance
 covariate models (\code{n_formula = ~ ...}), and the null model.
+
+Evaluates the log pointwise predictive density (\code{lppd}) and the effective
+number of parameters (\code{p_WAIC}, computed via the posterior variance of the
+pointwise log-likelihood across MCMC draws as recommended by Gelman et al. 2014).
 }

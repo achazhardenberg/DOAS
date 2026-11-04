@@ -125,18 +125,18 @@ it.</p>
 <p>Let’s generate a 24-sector dataset using <code><a href="../reference/simulate_pop.html">simulate_pop()</a></code>
 and <code><a href="../reference/simulate_survey.html">simulate_survey()</a></code>, where 12 sectors receive Double
 Observer surveys and 12 receive single-observer block counts, with a
-simulated detection covariate (<code>covariate</code>, e.g. standardized
-survey effort) and a simulated abundance covariate
-(<code>habitat</code>, e.g. standardized elevation/habitat quality).</p>
+simulated detection covariate (<code>effort</code>) and a simulated
+abundance covariate (<code>habitat</code>):</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://achazhardenberg.github.io/DOAS/">DOAS</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">12</span><span class="op">)</span></span>
 <span><span class="va">sim_pop_example</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_pop.html">simulate_pop</a></span><span class="op">(</span></span>
-<span>  pop_size     <span class="op">=</span> <span class="fl">3500</span>,</span>
-<span>  mean_group   <span class="op">=</span> <span class="fl">8</span>,</span>
-<span>  tot_areas    <span class="op">=</span> <span class="fl">24</span>,</span>
-<span>  n_cov_effect <span class="op">=</span> <span class="fl">0.5</span></span>
+<span>  pop_size   <span class="op">=</span> <span class="fl">3500</span>,</span>
+<span>  mean_group <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  tot_areas  <span class="op">=</span> <span class="fl">24</span>,</span>
+<span>  n_formula  <span class="op">=</span> <span class="op">~</span> <span class="va">habitat</span>,</span>
+<span>  n_betas    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>habitat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">my_survey_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_survey.html">simulate_survey</a></span><span class="op">(</span></span>
@@ -147,7 +147,8 @@ survey effort) and a simulated abundance covariate
 <span>  obs_effect      <span class="op">=</span> <span class="fl">0.90</span>,</span>
 <span>  detvar          <span class="op">=</span> <span class="fl">0.02</span>,</span>
 <span>  surv_areas      <span class="op">=</span> <span class="fl">12</span>,</span>
-<span>  cov_effect      <span class="op">=</span> <span class="fl">1.0</span></span>
+<span>  p_formula       <span class="op">=</span> <span class="op">~</span> <span class="va">effort</span>,</span>
+<span>  p_betas         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">my_survey_data</span><span class="op">)</span></span>
@@ -158,7 +159,7 @@ survey effort) and a simulated abundance covariate
 <span><span class="co">#&gt; 4         4          57          NA          NA          NA               7</span></span>
 <span><span class="co">#&gt; 5         5          20           0           0           1               1</span></span>
 <span><span class="co">#&gt; 6         6          97           5           3           5              13</span></span>
-<span><span class="co">#&gt;      habitat  covariate</span></span>
+<span><span class="co">#&gt;      habitat     effort</span></span>
 <span><span class="co">#&gt; 1 -1.4805676 -0.3560288</span></span>
 <span><span class="co">#&gt; 2  1.5771695 -1.3522702</span></span>
 <span><span class="co">#&gt; 3 -0.9567445 -0.5747150</span></span>
@@ -210,21 +211,21 @@ aggregate and visually verify the sector-level table before running
 </h3>
 <p><code><a href="../reference/doas.html">doas()</a></code> separates the estimation setup into three
 intuitive arguments: - <strong><code>method</code></strong>:
-<code>"frequentist"</code> (default analytic Chapman/Zippin) or
-<code>"bayesian"</code> (multi-chain MCMC Gibbs sampler). -
-<strong><code>obs_type</code></strong>: <code>"independent"</code>
-(default, observers scan independently) or <code>"dependent"</code>
-(Observer 1 points out detected groups and Observer 2 records only
-missed groups). - <strong><code>pooling</code></strong>:
-<code>"hybrid"</code> (default, uses sector-specific DO estimates in DO
-sectors and extrapolates Block sectors) or <code>"global"</code>
-(extrapolates all sectors using the pooled primary detection
-probability).</p>
+<code>"ML"</code> (default, Maximum Likelihood / analytical Chapman or
+Zippin removal) or <code>"Bayes"</code> (multi-chain Bayesian MCMC
+collapsed Gibbs sampler). - <strong><code>obs_type</code></strong>:
+<code>"independent"</code> (default, observers scan independently) or
+<code>"dependent"</code> (Observer 1 points out detected groups and
+Observer 2 records only missed groups). -
+<strong><code>pooling</code></strong>: <code>"hybrid"</code> (default,
+uses sector-specific DO estimates in DO sectors and extrapolates Block
+sectors) or <code>"global"</code> (extrapolates all sectors using the
+pooled primary detection probability).</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Default Frequentist estimation with Independent observers and Hybrid pooling</span></span>
+<code class="sourceCode R"><span><span class="co"># Default ML estimation with Independent observers and Hybrid pooling</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/doas.html">doas</a></span><span class="op">(</span></span>
 <span>  <span class="va">my_survey_data</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"frequentist"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"ML"</span>,</span>
 <span>  obs_type <span class="op">=</span> <span class="st">"independent"</span>,</span>
 <span>  pooling <span class="op">=</span> <span class="st">"hybrid"</span></span>
 <span><span class="op">)</span></span>
@@ -234,7 +235,7 @@ probability).</p>
 <span><span class="co">#&gt;   Double Observer Adjusted Survey (DOAS) Estimation  </span></span>
 <span><span class="co">#&gt; ====================================================</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Inference Method: Frequentist Independent (Chapman)</span></span>
+<span><span class="co">#&gt; Inference Method: Maximum Likelihood / Analytical (Chapman)</span></span>
 <span><span class="co">#&gt; Sector Pooling:   Hybrid</span></span>
 <span><span class="co">#&gt; Total sectors: 24</span></span>
 <span><span class="co">#&gt; Double Observer (DO) sectors: 12 (Independent)</span></span>
@@ -577,7 +578,7 @@ sets <code>detected_groups = total_count</code> and
 <span><span class="co">#&gt;   Double Observer Adjusted Survey (DOAS) Estimation  </span></span>
 <span><span class="co">#&gt; ====================================================</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Inference Method: Frequentist Independent (Chapman)</span></span>
+<span><span class="co">#&gt; Inference Method: Maximum Likelihood / Analytical (Chapman)</span></span>
 <span><span class="co">#&gt; Sector Pooling:   Hybrid</span></span>
 <span><span class="co">#&gt; Detection Formula (p_formula): p_hat ~ruggedness</span></span>
 <span><span class="co">#&gt; Total sectors: 8</span></span>
@@ -622,34 +623,36 @@ sector-level abundance as a function of habitat covariates via
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>:</p>
 <ul>
 <li>
-<strong>Frequentist (<code>method = "frequentist"</code>):</strong>
-Fits a quasi-binomial logistic regression
-(<code>p_hat ~ covariates</code>, weighted by <code>G_est</code>) on the
-DO sectors (<code>p_formula</code>) and/or a quasi-Poisson log-link
-regression on detection-adjusted abundance (<code>n_formula</code>).
-Competing models can be compared using <code><a href="../reference/QAIC.html">QAIC()</a></code>.</li>
+<strong>ML (<code>method = "ML"</code>, default):</strong> Fits a
+quasi-binomial logistic regression (<code>p_hat ~ covariates</code>,
+weighted by <code>G_est</code>) on the DO sectors
+(<code>p_formula</code>) and/or a quasi-Poisson log-link regression on
+detection-adjusted abundance (<code>n_formula</code>). Competing models
+can be compared using <code><a href="../reference/QAIC.html">QAIC()</a></code>. (Also accepts
+<code>method = "frequentist"</code>).</li>
 <li>
-<strong>Bayesian (<code>method = "bayesian"</code>):</strong> Runs a
+<strong>Bayes (<code>method = "Bayes"</code>):</strong> Runs a
 multi-chain Metropolis-within-Gibbs regression coupled to the posterior
 draws of latent group abundance
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>i</mi></msub><annotation encoding="application/x-tex">G_i</annotation></semantics></math>,
 reporting posterior means, standard deviations, 95% credible intervals,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{R}</annotation></semantics></math>,
-and ESS for every regression coefficient.</li>
+and ESS for every regression coefficient. (Also accepts
+<code>method = "bayesian"</code>).</li>
 </ul>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Frequentist detection covariate model and abundance covariate model</span></span>
-<span><span class="va">mod_effort</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/doas.html">doas</a></span><span class="op">(</span><span class="va">my_survey_data</span>, method <span class="op">=</span> <span class="st">"frequentist"</span>, p_formula <span class="op">=</span> <span class="op">~</span><span class="va">covariate</span>, n_formula <span class="op">=</span> <span class="op">~</span><span class="va">habitat</span><span class="op">)</span></span>
-<span><span class="va">mod_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/doas.html">doas</a></span><span class="op">(</span><span class="va">my_survey_data</span>, method <span class="op">=</span> <span class="st">"frequentist"</span>, p_formula <span class="op">=</span> <span class="op">~</span><span class="va">mean_group_size</span>, n_formula <span class="op">=</span> <span class="op">~</span><span class="va">habitat</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># ML detection covariate model and abundance covariate model</span></span>
+<span><span class="va">mod_effort</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/doas.html">doas</a></span><span class="op">(</span><span class="va">my_survey_data</span>, method <span class="op">=</span> <span class="st">"ML"</span>, p_formula <span class="op">=</span> <span class="op">~</span><span class="va">effort</span>, n_formula <span class="op">=</span> <span class="op">~</span><span class="va">habitat</span><span class="op">)</span></span>
+<span><span class="va">mod_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/doas.html">doas</a></span><span class="op">(</span><span class="va">my_survey_data</span>, method <span class="op">=</span> <span class="st">"ML"</span>, p_formula <span class="op">=</span> <span class="op">~</span><span class="va">mean_group_size</span>, n_formula <span class="op">=</span> <span class="op">~</span><span class="va">habitat</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">mod_effort</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Double Observer Adjusted Survey (DOAS) Estimation  </span></span>
 <span><span class="co">#&gt; ====================================================</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Inference Method: Frequentist Independent (Chapman)</span></span>
+<span><span class="co">#&gt; Inference Method: Maximum Likelihood / Analytical (Chapman)</span></span>
 <span><span class="co">#&gt; Sector Pooling:   Hybrid</span></span>
-<span><span class="co">#&gt; Detection Formula (p_formula): p_hat ~covariate</span></span>
+<span><span class="co">#&gt; Detection Formula (p_formula): p_hat ~effort</span></span>
 <span><span class="co">#&gt; Abundance Formula (n_formula): N_hat ~habitat</span></span>
 <span><span class="co">#&gt; Total sectors: 24</span></span>
 <span><span class="co">#&gt; Double Observer (DO) sectors: 12 (Independent)</span></span>
@@ -657,7 +660,7 @@ and ESS for every regression coefficient.</li>
 <span><span class="co">#&gt; Detection Probability Model (p_formula GLM):</span></span>
 <span><span class="co">#&gt;               Estimate Std. Error   t value   Pr(&gt;|t|)</span></span>
 <span><span class="co">#&gt; (Intercept) 0.07503245  0.1610263 0.4659641 0.65122509</span></span>
-<span><span class="co">#&gt; covariate   0.84717674  0.3173853 2.6692377 0.02352331</span></span>
+<span><span class="co">#&gt; effort      0.84717674  0.3173853 2.6692377 0.02352331</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Sector Abundance Model (n_formula GLM):</span></span>
 <span><span class="co">#&gt;              Estimate Std. Error   t value     Pr(&gt;|t|)</span></span>
@@ -697,12 +700,12 @@ and ESS for every regression coefficient.</li>
 <span><span class="co">#&gt; ----------------------------------------------------</span></span>
 <span></span>
 <span><span class="co"># Predict detection probability or expected abundance for new sectors</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">mod_effort</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>covariate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, habitat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"detection"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">mod_effort</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, habitat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"detection"</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         fit         se  ci_lower  ci_upper</span></span>
 <span><span class="co">#&gt; 1 0.3160154 0.07680297 0.1871589 0.4810813</span></span>
 <span><span class="co">#&gt; 2 0.5187493 0.04019996 0.4401437 0.5964377</span></span>
 <span><span class="co">#&gt; 3 0.7154920 0.07256428 0.5556502 0.8349180</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">mod_effort</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>covariate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, habitat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"abundance"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">mod_effort</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, habitat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"abundance"</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         fit        se  ci_lower ci_upper</span></span>
 <span><span class="co">#&gt; 1  83.17508  8.337939  68.33802 101.2335</span></span>
 <span><span class="co">#&gt; 2 131.57116  8.435043 116.03502 149.1875</span></span>
@@ -714,13 +717,13 @@ and ESS for every regression coefficient.</li>
 <span><span class="co">#&gt; mod_effort  2 1.413 40.34824   0.000000</span></span>
 <span><span class="co">#&gt; mod_group   2 1.413 45.82942   5.481188</span></span></code></pre></div>
 <p>You can also fit covariate models in the multi-chain Bayesian
-framework and compare them using the Widely Applicable Information
-Criterion (<code><a href="../reference/WAIC.html">WAIC()</a></code>):</p>
+framework (<code>method = "Bayes"</code>) and compare them using the
+Widely Applicable Information Criterion (<code><a href="../reference/WAIC.html">WAIC()</a></code>):</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">mod_bayes_null</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/doas.html">doas</a></span><span class="op">(</span></span>
 <span>  <span class="va">my_survey_data</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"bayesian"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"Bayes"</span>,</span>
 <span>  obs_type <span class="op">=</span> <span class="st">"independent"</span>,</span>
 <span>  chains <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>  iter <span class="op">=</span> <span class="fl">1000</span></span>
@@ -728,9 +731,9 @@ Criterion (<code><a href="../reference/WAIC.html">WAIC()</a></code>):</p>
 <span></span>
 <span><span class="va">mod_bayes_cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/doas.html">doas</a></span><span class="op">(</span></span>
 <span>  <span class="va">my_survey_data</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"bayesian"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"Bayes"</span>,</span>
 <span>  obs_type <span class="op">=</span> <span class="st">"independent"</span>,</span>
-<span>  p_formula <span class="op">=</span> <span class="op">~</span><span class="va">covariate</span>,</span>
+<span>  p_formula <span class="op">=</span> <span class="op">~</span><span class="va">effort</span>,</span>
 <span>  n_formula <span class="op">=</span> <span class="op">~</span><span class="va">habitat</span>,</span>
 <span>  chains <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>  iter <span class="op">=</span> <span class="fl">1000</span></span>
@@ -743,7 +746,7 @@ Criterion (<code><a href="../reference/WAIC.html">WAIC()</a></code>):</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Inference Method: Bayesian MCMC Independent</span></span>
 <span><span class="co">#&gt; Sector Pooling:   Hybrid</span></span>
-<span><span class="co">#&gt; Detection Formula (p_formula): p_hat ~covariate</span></span>
+<span><span class="co">#&gt; Detection Formula (p_formula): p_hat ~effort</span></span>
 <span><span class="co">#&gt; Abundance Formula (n_formula): N_hat ~habitat</span></span>
 <span><span class="co">#&gt; Total sectors: 24</span></span>
 <span><span class="co">#&gt; Double Observer (DO) sectors: 12 (Independent)</span></span>
@@ -753,7 +756,7 @@ Criterion (<code><a href="../reference/WAIC.html">WAIC()</a></code>):</p>
 <span><span class="co">#&gt; Bayesian Logistic Regression Posterior (Detection p_formula):</span></span>
 <span><span class="co">#&gt;              Mean    SD CI_2.5 CI_97.5  Rhat ESS</span></span>
 <span><span class="co">#&gt; (Intercept) 0.141 0.173 -0.184   0.479 1.006 297</span></span>
-<span><span class="co">#&gt; covariate   0.648 0.320  0.048   1.259 1.007 300</span></span>
+<span><span class="co">#&gt; effort      0.648 0.320  0.048   1.259 1.007 300</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Bayesian Log-Linear Regression Posterior (Abundance n_formula):</span></span>
 <span><span class="co">#&gt;              Mean    SD CI_2.5 CI_97.5  Rhat ESS</span></span>
@@ -864,7 +867,7 @@ models</strong> (as well as in <code><a href="../reference/predict.doas.html">pr
 <span><span class="co">#&gt;   Double Observer Adjusted Survey (DOAS) Estimation  </span></span>
 <span><span class="co">#&gt; ====================================================</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Inference Method: Frequentist Independent (Chapman)</span></span>
+<span><span class="co">#&gt; Inference Method: Maximum Likelihood / Analytical (Chapman)</span></span>
 <span><span class="co">#&gt; Sector Pooling:   Hybrid</span></span>
 <span><span class="co">#&gt; Detection Formula (p_formula): p_hat ~fatigue</span></span>
 <span><span class="co">#&gt; Abundance Formula (n_formula): N_hat ~offset(log(transect_length)) + habitat</span></span>
@@ -1094,7 +1097,7 @@ covariates like <code>effort</code>):</p>
 <span><span class="co">#&gt;   Double Observer Adjusted Survey (DOAS) Estimation  </span></span>
 <span><span class="co">#&gt; ====================================================</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Inference Method: Frequentist Independent (Chapman)</span></span>
+<span><span class="co">#&gt; Inference Method: Maximum Likelihood / Analytical (Chapman)</span></span>
 <span><span class="co">#&gt; Sector Pooling:   Hybrid</span></span>
 <span><span class="co">#&gt; Detection Formula (p_formula): p_hat ~elevation + effort</span></span>
 <span><span class="co">#&gt; Abundance Formula (n_formula): N_hat ~elevation</span></span>

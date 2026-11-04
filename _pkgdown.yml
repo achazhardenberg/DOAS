@@ -24,7 +24,6 @@ reference:
       - doas
       - doas_data
       - predict.doas
-      - summary.doas
       - print.doas_data
 
   - title: "Simulation & Power Analysis"
@@ -38,9 +37,7 @@ reference:
     desc: "Information criteria for frequentist and Bayesian models."
     contents:
       - QAIC
-      - QAIC.doas
       - WAIC
-      - WAIC.doas
 
   - title: "Base Estimators"
     desc: "Underlying mathematical estimators for mark-recapture and removal setups."

@@ -4,9 +4,7 @@
 <url><loc>https://achazhardenberg.github.io/DOAS/articles/index.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/authors.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/index.html</loc></url>
-<url><loc>https://achazhardenberg.github.io/DOAS/reference/QAIC.doas.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/reference/QAIC.html</loc></url>
-<url><loc>https://achazhardenberg.github.io/DOAS/reference/WAIC.doas.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/reference/WAIC.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/reference/bayesian_conjugate_estimate.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/reference/chapman_estimate.html</loc></url>
@@ -21,6 +19,5 @@
 <url><loc>https://achazhardenberg.github.io/DOAS/reference/print.doas_data.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/reference/simulate_pop.html</loc></url>
 <url><loc>https://achazhardenberg.github.io/DOAS/reference/simulate_survey.html</loc></url>
-<url><loc>https://achazhardenberg.github.io/DOAS/reference/summary.doas.html</loc></url>
 </urlset>
 

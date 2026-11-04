@@ -3,11 +3,21 @@
 for frequentist statistical models that handle overdispersion (such as quasi-binomial
 detection GLM models via p_formula or quasi-poisson abundance GLM models
 via n_formula in doas).
-For Bayesian MCMC models (method = "bayesian"), use WAIC instead.'><meta property="og:description" content='Computes the Quasi-Akaike Information Criterion (QAIC; Burnham &amp;amp; Anderson 2002)
+For Bayesian MCMC models (method = "Bayes"), use WAIC instead.
+Extracts the QAIC for frequentist/ML DOAS models that used a detection covariate formula
+(p_formula) or an abundance covariate formula (n_formula).
+Following Burnham &amp;amp; Anderson (2002), when comparing multiple candidate models, a single
+common variance inflation factor \(\hat{c} = \max(1, \hat{c}_{\text{global}})\) is
+estimated from the most parameterized model in the candidate set.'><meta property="og:description" content='Computes the Quasi-Akaike Information Criterion (QAIC; Burnham &amp;amp; Anderson 2002)
 for frequentist statistical models that handle overdispersion (such as quasi-binomial
 detection GLM models via p_formula or quasi-poisson abundance GLM models
 via n_formula in doas).
-For Bayesian MCMC models (method = "bayesian"), use WAIC instead.'></head><body>
+For Bayesian MCMC models (method = "Bayes"), use WAIC instead.
+Extracts the QAIC for frequentist/ML DOAS models that used a detection covariate formula
+(p_formula) or an abundance covariate formula (n_formula).
+Following Burnham &amp;amp; Anderson (2002), when comparing multiple candidate models, a single
+common variance inflation factor \(\hat{c} = \max(1, \hat{c}_{\text{global}})\) is
+estimated from the most parameterized model in the candidate set.'></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -46,12 +56,20 @@ For Bayesian MCMC models (method = "bayesian"), use WAIC instead.'></head><body>
 for frequentist statistical models that handle overdispersion (such as quasi-binomial
 detection GLM models via <code>p_formula</code> or quasi-poisson abundance GLM models
 via <code>n_formula</code> in <code><a href="doas.html">doas</a></code>).
-For Bayesian MCMC models (<code>method = "bayesian"</code>), use <code><a href="WAIC.html">WAIC</a></code> instead.</p>
+For Bayesian MCMC models (<code>method = "Bayes"</code>), use <code><a href="WAIC.html">WAIC</a></code> instead.</p>
+<p>Extracts the QAIC for frequentist/ML DOAS models that used a detection covariate formula
+(<code>p_formula</code>) or an abundance covariate formula (<code>n_formula</code>).
+Following Burnham &amp; Anderson (2002), when comparing multiple candidate models, a single
+common variance inflation factor \(\hat{c} = \max(1, \hat{c}_{\text{global}})\) is
+estimated from the most parameterized model in the candidate set.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">QAIC</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">QAIC</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'doas'</span></span>
+<span><span class="fu">QAIC</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -59,16 +77,17 @@ For Bayesian MCMC models (<code>method = "bayesian"</code>), use <code><a href="
 
 
 <dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
-<dd><p>A fitted model object (e.g., a frequentist `doas` model).</p></dd>
+<dd><p>A fitted `doas` object with <code>method = "ML"</code> (or <code>"frequentist"</code>).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Optionally more fitted model objects for model comparison.</p></dd>
+<dd><p>Optionally more fitted `doas` objects.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A numeric QAIC value, or a comparison data frame if multiple models are passed.</p>
+<p>A numeric QAIC value, or a data frame if multiple models are passed.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

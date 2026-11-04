@@ -158,9 +158,9 @@ run_doas_bootstrap <- function(
                     p_formula = p_formula,
                     n_formula = n_formula,
                     ci_method = "lognormal",
-                    chains = if (method == "bayesian") 2 else chains,
-                    iter = if (method == "bayesian") 600 else iter,
-                    burnin = if (method == "bayesian") 150 else burnin
+                    chains = if (method %in% c("Bayes", "bayesian")) 2 else chains,
+                    iter = if (method %in% c("Bayes", "bayesian")) 600 else iter,
+                    burnin = if (method %in% c("Bayes", "bayesian")) 150 else burnin
                 )
             },
             error = function(e) NULL
@@ -211,8 +211,8 @@ run_doas_bootstrap <- function(
 #'   - \code{detected_groups}: Total groups detected in the sector.
 #'   - \code{groups_both}, \code{groups_obs1}, \code{groups_obs2}: Double Observer group counts (non-NA for DO sectors, \code{NA} for Block/Unsurveyed sectors).
 #' @param method Character string specifying the statistical inference paradigm:
-#'   - \code{"frequentist"} (default): Uses analytic Chapman (when \code{obs_type = "independent"}) or Zippin removal (when \code{obs_type = "dependent"}) estimators and Delta-method variance.
-#'   - \code{"bayesian"}: Uses a multi-chain Collapsed Poisson-Gamma-Beta Gibbs Sampler (MCMC) to sample the full joint posterior of detection probabilities and abundance.
+#'   - \code{"ML"} (default): Uses Maximum Likelihood / analytical Chapman (when \code{obs_type = "independent"}) or Zippin removal (when \code{obs_type = "dependent"}) estimators and Delta-method variance. Also accepts \code{"frequentist"}.
+#'   - \code{"Bayes"}: Uses a multi-chain Collapsed Poisson-Gamma-Beta Gibbs Sampler (MCMC) to sample the full joint posterior of detection probabilities and abundance. Also accepts \code{"bayesian"}.
 #' @param obs_type Character string specifying the field observer protocol:
 #'   - \code{"independent"} (default): Both observers scan independently (Lincoln-Petersen / Chapman geometry).
 #'   - \code{"dependent"}: Primary observer calls out detected groups and Secondary observer records only missed groups (2-pass removal / Zippin geometry).
@@ -220,27 +220,27 @@ run_doas_bootstrap <- function(
 #'   - \code{"hybrid"} (default): Uses sector-specific DO estimates for DO sectors and extrapolates only Block sectors using the pooled/modeled detection probability.
 #'   - \code{"global"}: Extrapolates all surveyed sectors using the pooled or covariate-modeled detection probability.
 #' @param p_formula Optional one-sided formula (e.g., \code{~ effort * ruggedness}) to model detection probability
-#'   \eqn{\hat{p}} across sectors. For \code{method = "frequentist"}, fits a quasi-binomial GLM; for
-#'   \code{method = "bayesian"}, runs a coupled multi-chain Bayesian logistic regression via MCMC.
+#'   \eqn{\hat{p}} across sectors. For \code{method = "ML"}, fits a quasi-binomial GLM; for
+#'   \code{method = "Bayes"}, runs a coupled multi-chain Bayesian logistic regression via MCMC.
 #' @param n_formula Optional one-sided formula (e.g., \code{~ elevation + habitat + offset(log(area))}) to model
 #'   sector-level abundance \eqn{\lambda_i} as a function of environmental covariates (Quasi-Poisson log-link GLM in
-#'   frequentist mode; Bayesian Poisson log-linear regression in Bayesian mode). Enables \code{\link{predict.doas}}
+#'   ML mode; Bayesian Poisson log-linear regression in Bayes mode). Enables \code{\link{predict.doas}}
 #'   for new/unsurveyed sectors and habitat response curves.
 #' @param ci_method Character string specifying how to calculate Confidence/Credible Intervals:
-#'   - \code{"lognormal"} (default): Uses the analytic Chao (1987) log-normal approximation for frequentist estimators, or direct posterior credible intervals from the MCMC draws when \code{method = "bayesian"}.
+#'   - \code{"lognormal"} (default): Uses the analytic Chao (1987) log-normal approximation for ML estimators, or direct posterior credible intervals from the MCMC draws when \code{method = "Bayes"}.
 #'   - \code{"bootstrap"}: Uses a non-parametric stratified sector resampling bootstrap.
 #' @param R Integer indicating the number of bootstrap replicates (only used if \code{ci_method = "bootstrap"}). Default is 1000.
-#' @param chains Integer number of Markov chains when \code{method = "bayesian"} (default 4).
-#' @param iter Integer number of total MCMC iterations per chain when \code{method = "bayesian"} (default 2000).
-#' @param burnin Integer number of warm-up/burn-in iterations per chain when \code{method = "bayesian"} (default \code{floor(iter / 4)}).
+#' @param chains Integer number of Markov chains when \code{method = "Bayes"} (default 4).
+#' @param iter Integer number of total MCMC iterations per chain when \code{method = "Bayes"} (default 2000).
+#' @param burnin Integer number of warm-up/burn-in iterations per chain when \code{method = "Bayes"} (default \code{floor(iter / 4)}).
 #'
-#' @return A list of class `doas` containing the estimate, confidence/credible intervals, sector-level estimates, fitted submodels, and (when Bayesian) MCMC convergence diagnostics.
+#' @return A list of class `doas` containing the estimate, confidence/credible intervals, sector-level estimates, fitted submodels, and (when Bayes) MCMC convergence diagnostics.
 #' @importFrom stats var coef
 #' @importFrom tools toTitleCase
 #' @export
 doas <- function(
     data,
-    method = c("frequentist", "bayesian"),
+    method = c("ML", "Bayes", "frequentist", "bayesian"),
     obs_type = c("independent", "dependent"),
     pooling = c("hybrid", "global"),
     p_formula = NULL,
@@ -252,6 +252,11 @@ doas <- function(
     burnin = NULL
 ) {
     method <- match.arg(method)
+    if (method %in% c("frequentist", "ML")) {
+        method <- "ML"
+    } else {
+        method <- "Bayes"
+    }
     obs_type <- match.arg(obs_type)
     pooling <- match.arg(pooling)
     ci_method <- match.arg(ci_method)
@@ -274,7 +279,7 @@ doas <- function(
     bayes_cov_res <- NULL
     model <- NULL
 
-    if (method == "frequentist") {
+    if (method == "ML") {
         do_data <- compute_frequentist_do(do_data, obs_type)
         glob_p <- compute_frequentist_global_p(do_data, obs_type)
         mean_p_hat <- glob_p$mean_p_hat
@@ -334,7 +339,7 @@ doas <- function(
         stop("Calculated mean detection probability is invalid.")
     }
 
-    sec_out <- if (method == "bayesian") {
+    sec_out <- if (method == "Bayes") {
         compute_bayesian_sectors(
             data = data,
             do_data = do_data,
@@ -476,7 +481,7 @@ predict.doas <- function(
         if (is.null(object$p_formula)) {
             p_val <- object$mean_p_hat
             se_val <- sqrt(object$var_mean_p_hat)
-            if (identical(object$method, "bayesian") && !is.null(object$mu_p1_draws)) {
+            if (object$method %in% c("Bayes", "bayesian") && !is.null(object$mu_p1_draws)) {
                 qs <- stats::quantile(
                     as.vector(object$mu_p1_draws),
                     probs = c(0.025, 0.975),
@@ -494,7 +499,7 @@ predict.doas <- function(
                 ci_lower = rep(qs[1], n_rows),
                 ci_upper = rep(qs[2], n_rows)
             )
-        } else if (identical(object$method, "frequentist")) {
+        } else if (object$method %in% c("ML", "frequentist")) {
             pred_link <- stats::predict(
                 object$p_model,
                 newdata = eval_df,
@@ -559,7 +564,7 @@ predict.doas <- function(
                     ci_upper = sec$ci_upper / scale_div
                 )
             }
-        } else if (identical(object$method, "frequentist")) {
+        } else if (object$method %in% c("ML", "frequentist")) {
             pred_link <- stats::predict(
                 object$n_model,
                 newdata = eval_df,
@@ -620,15 +625,16 @@ predict.doas <- function(
 #' @param ... Additional arguments
 #'
 #' @export
+#' @rdname doas
 summary.doas <- function(object, ...) {
     cat("\n  Double Observer Adjusted Survey (DOAS) Estimation  \n")
     cat("====================================================\n\n")
 
-    estimator_label <- if (object$method == "frequentist") {
+    estimator_label <- if (object$method %in% c("ML", "frequentist")) {
         if (object$obs_type == "independent") {
-            "Frequentist Independent (Chapman)"
+            "Maximum Likelihood / Analytical (Chapman)"
         } else {
-            "Frequentist Dependent (Zippin Removal)"
+            "Maximum Likelihood (Zippin Removal)"
         }
     } else {
         if (object$obs_type == "independent") {
@@ -701,7 +707,7 @@ summary.doas <- function(object, ...) {
 
     ci_label <- if (object$ci_method == "bootstrap") {
         "Bootstrap Percentile CI"
-    } else if (identical(object$method, "bayesian")) {
+    } else if (object$method %in% c("Bayes", "bayesian")) {
         "Bayesian Credible Interval"
     } else {
         "Log-normal CI"

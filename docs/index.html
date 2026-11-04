@@ -147,7 +147,13 @@
 <span><span class="co"># 1. Simulate a 24-sector population (~3500 animals) with a habitat effect on abundance,</span></span>
 <span><span class="co">#    and a partial DOAS survey (12 DO sectors, 12 Block sectors) with an effort effect on detection</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">12</span><span class="op">)</span></span>
-<span><span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/simulate_pop.html">simulate_pop</a></span><span class="op">(</span>pop_size <span class="op">=</span> <span class="fl">3500</span>, mean_group <span class="op">=</span> <span class="fl">8</span>, tot_areas <span class="op">=</span> <span class="fl">24</span>, n_cov_effect <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/simulate_pop.html">simulate_pop</a></span><span class="op">(</span></span>
+<span>  pop_size   <span class="op">=</span> <span class="fl">3500</span>,</span>
+<span>  mean_group <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  tot_areas  <span class="op">=</span> <span class="fl">24</span>,</span>
+<span>  n_formula  <span class="op">=</span> <span class="op">~</span> <span class="va">habitat</span>,</span>
+<span>  n_betas    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>habitat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="va">raw_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/simulate_survey.html">simulate_survey</a></span><span class="op">(</span></span>
 <span>  sim_pop         <span class="op">=</span> <span class="va">pop</span>,</span>
 <span>  det_p1          <span class="op">=</span> <span class="fl">0.55</span>,</span>
@@ -156,44 +162,45 @@
 <span>  obs_effect      <span class="op">=</span> <span class="fl">0.90</span>,</span>
 <span>  detvar          <span class="op">=</span> <span class="fl">0.02</span>,</span>
 <span>  surv_areas      <span class="op">=</span> <span class="fl">12</span>,</span>
-<span>  cov_effect      <span class="op">=</span> <span class="fl">1.0</span></span>
+<span>  p_formula       <span class="op">=</span> <span class="op">~</span> <span class="va">effort</span>,</span>
+<span>  p_betas         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">survey_dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/doas_data.html">doas_data</a></span><span class="op">(</span><span class="va">raw_data</span>, format <span class="op">=</span> <span class="st">"sector"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">survey_dat</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Frequentist Hybrid Estimation (Detection &amp; Abundance Covariates)</span></span>
-<span><span class="va">fit_freq_cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/doas.html">doas</a></span><span class="op">(</span></span>
+<span><span class="co"># 2. Maximum Likelihood (ML) Estimation (Detection &amp; Abundance Covariates)</span></span>
+<span><span class="va">fit_ml_cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/doas.html">doas</a></span><span class="op">(</span></span>
 <span>  <span class="va">survey_dat</span>,</span>
-<span>  method    <span class="op">=</span> <span class="st">"frequentist"</span>,</span>
+<span>  method    <span class="op">=</span> <span class="st">"ML"</span>,</span>
 <span>  obs_type  <span class="op">=</span> <span class="st">"independent"</span>,</span>
 <span>  pooling   <span class="op">=</span> <span class="st">"hybrid"</span>,</span>
-<span>  p_formula <span class="op">=</span> <span class="op">~</span> <span class="va">covariate</span>,</span>
+<span>  p_formula <span class="op">=</span> <span class="op">~</span> <span class="va">effort</span>,</span>
 <span>  n_formula <span class="op">=</span> <span class="op">~</span> <span class="va">habitat</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">fit_freq_hab</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/doas.html">doas</a></span><span class="op">(</span></span>
+<span><span class="va">fit_ml_null</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/doas.html">doas</a></span><span class="op">(</span></span>
 <span>  <span class="va">survey_dat</span>,</span>
-<span>  method    <span class="op">=</span> <span class="st">"frequentist"</span>,</span>
+<span>  method    <span class="op">=</span> <span class="st">"ML"</span>,</span>
 <span>  obs_type  <span class="op">=</span> <span class="st">"independent"</span>,</span>
 <span>  pooling   <span class="op">=</span> <span class="st">"hybrid"</span>,</span>
-<span>  p_formula <span class="op">=</span> <span class="op">~</span> <span class="va">habitat</span>,</span>
+<span>  p_formula <span class="op">=</span> <span class="op">~</span> <span class="fl">1</span>,</span>
 <span>  n_formula <span class="op">=</span> <span class="op">~</span> <span class="va">habitat</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_freq_cov</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_ml_cov</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"True simulated population:"</span>, <span class="va">pop</span><span class="op">$</span><span class="va">tot_pop</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/QAIC.html">QAIC</a></span><span class="op">(</span><span class="va">fit_freq_cov</span>, <span class="va">fit_freq_hab</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/QAIC.html">QAIC</a></span><span class="op">(</span><span class="va">fit_ml_cov</span>, <span class="va">fit_ml_null</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Predict detection probability and expected abundance across a covariate gradient</span></span>
-<span><span class="va">new_sectors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>covariate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, habitat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_freq_cov</span>, newdata <span class="op">=</span> <span class="va">new_sectors</span>, type <span class="op">=</span> <span class="st">"detection"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_freq_cov</span>, newdata <span class="op">=</span> <span class="va">new_sectors</span>, type <span class="op">=</span> <span class="st">"abundance"</span><span class="op">)</span></span>
+<span><span class="va">new_sectors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, habitat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_ml_cov</span>, newdata <span class="op">=</span> <span class="va">new_sectors</span>, type <span class="op">=</span> <span class="st">"detection"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_ml_cov</span>, newdata <span class="op">=</span> <span class="va">new_sectors</span>, type <span class="op">=</span> <span class="st">"abundance"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 3. Multi-Chain Hierarchical Bayesian Estimation &amp; WAIC Selection</span></span>
 <span><span class="va">fit_bayes_null</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/doas.html">doas</a></span><span class="op">(</span></span>
 <span>  <span class="va">survey_dat</span>,</span>
-<span>  method   <span class="op">=</span> <span class="st">"bayesian"</span>,</span>
+<span>  method   <span class="op">=</span> <span class="st">"Bayes"</span>,</span>
 <span>  obs_type <span class="op">=</span> <span class="st">"independent"</span>,</span>
 <span>  pooling  <span class="op">=</span> <span class="st">"hybrid"</span>,</span>
 <span>  chains   <span class="op">=</span> <span class="fl">3</span>,</span>
@@ -203,10 +210,10 @@
 <span></span>
 <span><span class="va">fit_bayes_cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/doas.html">doas</a></span><span class="op">(</span></span>
 <span>  <span class="va">survey_dat</span>,</span>
-<span>  method    <span class="op">=</span> <span class="st">"bayesian"</span>,</span>
+<span>  method    <span class="op">=</span> <span class="st">"Bayes"</span>,</span>
 <span>  obs_type  <span class="op">=</span> <span class="st">"independent"</span>,</span>
 <span>  pooling   <span class="op">=</span> <span class="st">"hybrid"</span>,</span>
-<span>  p_formula <span class="op">=</span> <span class="op">~</span> <span class="va">covariate</span>,</span>
+<span>  p_formula <span class="op">=</span> <span class="op">~</span> <span class="va">effort</span>,</span>
 <span>  n_formula <span class="op">=</span> <span class="op">~</span> <span class="va">habitat</span>,</span>
 <span>  chains    <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  iter      <span class="op">=</span> <span class="fl">2000</span>,</span>

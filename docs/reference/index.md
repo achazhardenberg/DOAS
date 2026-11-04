@@ -4,14 +4,13 @@
 
 Top-level functions to structure field data and estimate abundance.
 
-- [`doas()`](https://achazhardenberg.github.io/DOAS/reference/doas.md) :
-  Double Observer Adjusted Survey (DOAS) Abundance Estimation
+- [`doas()`](https://achazhardenberg.github.io/DOAS/reference/doas.md)
+  [`summary(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/doas.md)
+  : Double Observer Adjusted Survey (DOAS) Abundance Estimation
 - [`doas_data()`](https://achazhardenberg.github.io/DOAS/reference/doas_data.md)
   : Format and Validate Survey Data for DOAS
 - [`predict(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/predict.doas.md)
   : Predict Method for DOAS Models
-- [`summary(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/summary.doas.md)
-  : Summary for doas objects
 - [`print(`*`<doas_data>`*`)`](https://achazhardenberg.github.io/DOAS/reference/print.doas_data.md)
   : Print Method for Validated DOAS Survey Data
 
@@ -33,12 +32,8 @@ Information criteria for frequentist and Bayesian models.
 
 - [`QAIC()`](https://achazhardenberg.github.io/DOAS/reference/QAIC.md) :
   Quasi-Akaike Information Criterion (QAIC)
-- [`QAIC(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/QAIC.doas.md)
-  : QAIC Method for Frequentist DOAS Models
 - [`WAIC()`](https://achazhardenberg.github.io/DOAS/reference/WAIC.md) :
   Widely Applicable Information Criterion (WAIC)
-- [`WAIC(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/WAIC.doas.md)
-  : WAIC Method for Bayesian DOAS Models
 
 ## Base Estimators
 

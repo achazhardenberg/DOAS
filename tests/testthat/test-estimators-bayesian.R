@@ -22,7 +22,7 @@ test_that("doas computes multi-chain bayesian independent and dependent estimate
     )
 
     expect_s3_class(res_bayes_ind, "doas")
-    expect_equal(res_bayes_ind$method, "bayesian")
+    expect_equal(res_bayes_ind$method, "Bayes")
     expect_equal(res_bayes_ind$obs_type, "independent")
     expect_true(res_bayes_ind$total_abundance > 0)
     expect_true(res_bayes_ind$se_abundance > 0)
@@ -54,7 +54,7 @@ test_that("doas computes multi-chain bayesian independent and dependent estimate
         burnin = 250
     )
     expect_s3_class(res_bayes_dep, "doas")
-    expect_equal(res_bayes_dep$method, "bayesian")
+    expect_equal(res_bayes_dep$method, "Bayes")
     expect_equal(res_bayes_dep$obs_type, "dependent")
     expect_true(res_bayes_dep$total_abundance > sum(data$total_count))
     expect_true(res_bayes_dep$mcmc_diagnostics$rhat_abundance < 1.1)
@@ -96,4 +96,19 @@ test_that("doas computes multi-chain bayesian independent and dependent estimate
     expect_s3_class(waic_comp, "data.frame")
     expect_equal(nrow(waic_comp), 2)
     expect_true(all(c("lppd", "p_WAIC", "WAIC", "SE", "delta_WAIC") %in% names(waic_comp)))
+
+    # Test Bayesian bootstrap
+    res_bayes_boot <- doas(
+        data,
+        method = "Bayes",
+        obs_type = "independent",
+        ci_method = "bootstrap",
+        R = 5,
+        chains = 2,
+        iter = 400,
+        burnin = 100
+    )
+    expect_equal(res_bayes_boot$ci_method, "bootstrap")
+    expect_true(res_bayes_boot$ci_upper >= res_bayes_boot$ci_lower)
+    expect_true(res_bayes_boot$ci_lower >= sum(data$total_count))
 })

@@ -4,9 +4,9 @@
 #' for frequentist statistical models that handle overdispersion (such as quasi-binomial
 #' detection GLM models via \code{p_formula} or quasi-poisson abundance GLM models
 #' via \code{n_formula} in \code{\link{doas}}).
-#' For Bayesian MCMC models (\code{method = "bayesian"}), use \code{\link{WAIC}} instead.
+#' For Bayesian MCMC models (\code{method = "Bayes"}), use \code{\link{WAIC}} instead.
 #'
-#' @param object A fitted model object (e.g., a frequentist `doas` model).
+#' @param object A fitted model object (e.g., a frequentist/ML `doas` model).
 #' @param ... Optionally more fitted model objects for model comparison.
 #'
 #' @return A numeric QAIC value, or a comparison data frame if multiple models are passed.
@@ -17,25 +17,19 @@ QAIC <- function(object, ...) {
 
 #' QAIC Method for Frequentist DOAS Models
 #'
-#' Extracts the QAIC for frequentist DOAS models that used a detection covariate formula
+#' Extracts the QAIC for frequentist/ML DOAS models that used a detection covariate formula
 #' (\code{p_formula}) or an abundance covariate formula (\code{n_formula}).
 #' Following Burnham & Anderson (2002), when comparing multiple candidate models, a single
 #' common variance inflation factor \eqn{\hat{c} = \max(1, \hat{c}_{\text{global}})} is
 #' estimated from the most parameterized model in the candidate set.
 #'
-#' @param object A fitted `doas` object with \code{method = "frequentist"}.
+#' @param object A fitted `doas` object with \code{method = "ML"} (or \code{"frequentist"}).
 #' @param ... Optionally more fitted `doas` objects.
 #'
 #' @return A numeric QAIC value, or a data frame if multiple models are passed.
 #' @importFrom stats dbinom dpois coef
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' mod1 <- doas(data, method = "frequentist", p_formula = ~ effort)
-#' mod2 <- doas(data, method = "frequentist", p_formula = ~ effort + habitat)
-#' QAIC(mod1, mod2)
-#' }
+#' @rdname QAIC
 QAIC.doas <- function(object, ...) {
     mods <- list(object, ...)
 
@@ -55,7 +49,7 @@ QAIC.doas <- function(object, ...) {
     )
 
     extract_glm <- function(mod) {
-        if (!inherits(mod, "doas") || identical(mod$method, "bayesian")) {
+        if (!inherits(mod, "doas") || mod$method %in% c("Bayes", "bayesian")) {
             return(NULL)
         }
         if (use_n_submodel) mod$n_model else mod$p_model
@@ -94,9 +88,9 @@ QAIC.doas <- function(object, ...) {
         if (!inherits(mod, "doas")) {
             return(NA_real_)
         }
-        if (identical(mod$method, "bayesian")) {
+        if (mod$method %in% c("Bayes", "bayesian")) {
             warning(
-                "QAIC is intended for frequentist GLM models. For Bayesian MCMC models (method = 'bayesian'), use WAIC() instead."
+                "QAIC is intended for ML/frequentist GLM models. For Bayesian MCMC models (method = 'Bayes'), use WAIC() instead."
             )
             return(NA_real_)
         }
@@ -154,11 +148,11 @@ QAIC.doas <- function(object, ...) {
 #'
 #' Computes the Watanabe-Akaike (Widely Applicable) Information Criterion (WAIC;
 #' Watanabe 2010; Gelman, Hwang & Vehtari 2014) from the full pointwise posterior
-#' log-likelihood draws of Bayesian MCMC \code{\link{doas}} models (\code{method = "bayesian"}).
+#' log-likelihood draws of Bayesian MCMC \code{\link{doas}} models (\code{method = "Bayes"}).
 #' Can compare both detection covariate models (\code{p_formula = ~ ...}), abundance
 #' covariate models (\code{n_formula = ~ ...}), and the null model.
 #'
-#' @param object A fitted Bayesian `doas` model object (\code{method = "bayesian"}).
+#' @param object A fitted Bayesian `doas` model object (\code{method = "Bayes"} or \code{"bayesian"}).
 #' @param ... Optionally more fitted Bayesian `doas` model objects for model comparison.
 #'
 #' @return If a single model is provided, a numeric scalar WAIC value (with attributes
@@ -176,19 +170,13 @@ WAIC <- function(object, ...) {
 #' number of parameters (\code{p_WAIC}, computed via the posterior variance of the
 #' pointwise log-likelihood across MCMC draws as recommended by Gelman et al. 2014).
 #'
-#' @param object A fitted `doas` object with \code{method = "bayesian"}.
+#' @param object A fitted `doas` object with \code{method = "Bayes"} (or \code{"bayesian"}).
 #' @param ... Optionally more fitted Bayesian `doas` objects.
 #'
 #' @return A numeric WAIC value (for a single model) or a comparison data frame (for multiple models).
 #' @importFrom stats var dbinom
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' mod_null   <- doas(data, method = "bayesian")
-#' mod_effort <- doas(data, method = "bayesian", p_formula = ~ effort)
-#' WAIC(mod_null, mod_effort)
-#' }
+#' @rdname WAIC
 WAIC.doas <- function(object, ...) {
     mods <- list(object, ...)
     has_n <- vapply(
@@ -210,9 +198,9 @@ WAIC.doas <- function(object, ...) {
         if (!inherits(mod, "doas")) {
             return(c(lppd = NA_real_, p_WAIC = NA_real_, WAIC = NA_real_, SE = NA_real_))
         }
-        if (!identical(mod$method, "bayesian") || is.null(mod$log_lik)) {
+        if (!mod$method %in% c("Bayes", "bayesian") || is.null(mod$log_lik)) {
             warning(
-                "WAIC requires posterior MCMC log-likelihood draws from a Bayesian DOAS model (method = 'bayesian'). For frequentist models, use QAIC() instead."
+                "WAIC requires posterior MCMC log-likelihood draws from a Bayesian DOAS model (method = 'Bayes'). For ML/frequentist models, use QAIC() instead."
             )
             return(c(lppd = NA_real_, p_WAIC = NA_real_, WAIC = NA_real_, SE = NA_real_))
         }

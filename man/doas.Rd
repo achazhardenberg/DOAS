@@ -2,11 +2,12 @@
 % Please edit documentation in R/doas.R
 \name{doas}
 \alias{doas}
+\alias{summary.doas}
 \title{Double Observer Adjusted Survey (DOAS) Abundance Estimation}
 \usage{
 doas(
   data,
-  method = c("frequentist", "bayesian"),
+  method = c("ML", "Bayes", "frequentist", "bayesian"),
   obs_type = c("independent", "dependent"),
   pooling = c("hybrid", "global"),
   p_formula = NULL,
@@ -17,6 +18,8 @@ doas(
   iter = 2000,
   burnin = NULL
 )
+
+\method{summary}{doas}(object, ...)
 }
 \arguments{
 \item{data}{A dataframe or \code{\link{doas_data}} object containing survey data.
@@ -27,8 +30,8 @@ Each row represents a sector:
 - \code{groups_both}, \code{groups_obs1}, \code{groups_obs2}: Double Observer group counts (non-NA for DO sectors, \code{NA} for Block/Unsurveyed sectors).}
 
 \item{method}{Character string specifying the statistical inference paradigm:
-- \code{"frequentist"} (default): Uses analytic Chapman (when \code{obs_type = "independent"}) or Zippin removal (when \code{obs_type = "dependent"}) estimators and Delta-method variance.
-- \code{"bayesian"}: Uses a multi-chain Collapsed Poisson-Gamma-Beta Gibbs Sampler (MCMC) to sample the full joint posterior of detection probabilities and abundance.}
+- \code{"ML"} (default): Uses Maximum Likelihood / analytical Chapman (when \code{obs_type = "independent"}) or Zippin removal (when \code{obs_type = "dependent"}) estimators and Delta-method variance. Also accepts \code{"frequentist"}.
+- \code{"Bayes"}: Uses a multi-chain Collapsed Poisson-Gamma-Beta Gibbs Sampler (MCMC) to sample the full joint posterior of detection probabilities and abundance. Also accepts \code{"bayesian"}.}
 
 \item{obs_type}{Character string specifying the field observer protocol:
 - \code{"independent"} (default): Both observers scan independently (Lincoln-Petersen / Chapman geometry).
@@ -39,28 +42,32 @@ Each row represents a sector:
 - \code{"global"}: Extrapolates all surveyed sectors using the pooled or covariate-modeled detection probability.}
 
 \item{p_formula}{Optional one-sided formula (e.g., \code{~ effort * ruggedness}) to model detection probability
-\eqn{\hat{p}} across sectors. For \code{method = "frequentist"}, fits a quasi-binomial GLM; for
-\code{method = "bayesian"}, runs a coupled multi-chain Bayesian logistic regression via MCMC.}
+\eqn{\hat{p}} across sectors. For \code{method = "ML"}, fits a quasi-binomial GLM; for
+\code{method = "Bayes"}, runs a coupled multi-chain Bayesian logistic regression via MCMC.}
 
 \item{n_formula}{Optional one-sided formula (e.g., \code{~ elevation + habitat + offset(log(area))}) to model
 sector-level abundance \eqn{\lambda_i} as a function of environmental covariates (Quasi-Poisson log-link GLM in
-frequentist mode; Bayesian Poisson log-linear regression in Bayesian mode). Enables \code{\link{predict.doas}}
+ML mode; Bayesian Poisson log-linear regression in Bayes mode). Enables \code{\link{predict.doas}}
 for new/unsurveyed sectors and habitat response curves.}
 
 \item{ci_method}{Character string specifying how to calculate Confidence/Credible Intervals:
-- \code{"lognormal"} (default): Uses the analytic Chao (1987) log-normal approximation for frequentist estimators, or direct posterior credible intervals from the MCMC draws when \code{method = "bayesian"}.
+- \code{"lognormal"} (default): Uses the analytic Chao (1987) log-normal approximation for ML estimators, or direct posterior credible intervals from the MCMC draws when \code{method = "Bayes"}.
 - \code{"bootstrap"}: Uses a non-parametric stratified sector resampling bootstrap.}
 
 \item{R}{Integer indicating the number of bootstrap replicates (only used if \code{ci_method = "bootstrap"}). Default is 1000.}
 
-\item{chains}{Integer number of Markov chains when \code{method = "bayesian"} (default 4).}
+\item{chains}{Integer number of Markov chains when \code{method = "Bayes"} (default 4).}
 
-\item{iter}{Integer number of total MCMC iterations per chain when \code{method = "bayesian"} (default 2000).}
+\item{iter}{Integer number of total MCMC iterations per chain when \code{method = "Bayes"} (default 2000).}
 
-\item{burnin}{Integer number of warm-up/burn-in iterations per chain when \code{method = "bayesian"} (default \code{floor(iter / 4)}).}
+\item{burnin}{Integer number of warm-up/burn-in iterations per chain when \code{method = "Bayes"} (default \code{floor(iter / 4)}).}
+
+\item{object}{An object of class `doas`}
+
+\item{...}{Additional arguments}
 }
 \value{
-A list of class `doas` containing the estimate, confidence/credible intervals, sector-level estimates, fitted submodels, and (when Bayesian) MCMC convergence diagnostics.
+A list of class `doas` containing the estimate, confidence/credible intervals, sector-level estimates, fitted submodels, and (when Bayes) MCMC convergence diagnostics.
 }
 \description{
 Estimates total population abundance using either a full Double Observer (DO)

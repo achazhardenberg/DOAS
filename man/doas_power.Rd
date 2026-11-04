@@ -23,7 +23,7 @@ doas_power(
   covariates = NULL,
   cov_effect = 0,
   n_cov_effect = 0,
-  method = c("frequentist", "bayesian"),
+  method = c("ML", "Bayes", "frequentist", "bayesian"),
   obs_type = c("independent", "dependent"),
   pooling = c("hybrid", "global"),
   ci_method = c("lognormal", "bootstrap")
@@ -66,7 +66,7 @@ doas_power(
 
 \item{n_cov_effect}{Numeric log-linear effect of a single simulated abundance covariate (\code{habitat}) (retained for backward compatibility).}
 
-\item{method}{Statistical inference paradigm (\code{"frequentist"} or \code{"bayesian"}).}
+\item{method}{Statistical inference paradigm (\code{"ML"}, \code{"Bayes"}, \code{"frequentist"}, or \code{"bayesian"}). Default is \code{"ML"}.}
 
 \item{obs_type}{Observer field protocol (\code{"independent"} or \code{"dependent"}).}
 
