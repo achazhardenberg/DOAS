@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 518 600" width="518" height="600">
+  <defs>
+    <!-- Regular hexagon clip path -->
+    <clipPath id="hex-clip">
+      <polygon points="259.0,25.0 497.2,162.5 497.2,437.5 259.0,575.0 20.8,437.5 20.8,162.5" />
+    </clipPath>
+  </defs>
+
+  <!-- Hexagon Interior with Clip -->
+  <g clip-path="url(#hex-clip)">
+    <!-- Solid, sober, matte background (Deep Slate / Oxford Navy) -->
+    <rect width="518" height="600" fill="#15222e" />
+
+    <!-- Subtle, ultra-clean geometric mountain horizon (one single minimal line) -->
+    <path d="M 10,470 L 160,390 L 259,425 L 360,375 L 508,460" 
+          fill="none" stroke="#243b53" stroke-width="1.5" stroke-opacity="0.6"/>
+
+    <!-- ==================== THE TWO DETECTION CIRCLES (SOBER VENN) ==================== -->
+    <!-- Observer 1: Muted Sea-Glass Teal (Flat, no gradients) -->
+    <circle cx="215" cy="315" r="110" 
+            fill="#3a86c8" fill-opacity="0.18" 
+            stroke="#64b5f6" stroke-width="1.5" stroke-opacity="0.75" />
+
+    <!-- Observer 2: Muted Terracotta Sand (Flat, no gradients) -->
+    <circle cx="303" cy="315" r="110" 
+            fill="#d97736" fill-opacity="0.18" 
+            stroke="#f4a261" stroke-width="1.5" stroke-opacity="0.75" />
+
+    <!-- Overlap / Joint Detection Zone: Crisp flat intersection -->
+    <!-- cx1=215, cx2=303, distance=88. r=110. dy = sqrt(110^2 - 44^2) = sqrt(12100 - 1936) = sqrt(10164) ~ 100.8 -->
+    <!-- intersection from y=315-100.8=214.2 to y=315+100.8=415.8, centered at x=259 -->
+    <path d="M 259,214.2 A 110 110 0 0 1 259,415.8 A 110 110 0 0 1 259,214.2 Z" 
+          fill="#f8f9fa" fill-opacity="0.12" 
+          stroke="#ffffff" stroke-width="1" stroke-opacity="0.5" />
+
+    <!-- Minimal Observer Indicators (Sober, unobtrusive) -->
+    <text x="165" y="245" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" 
+          font-size="11" font-weight="600" fill="#90caf9" letter-spacing="1.5px" text-anchor="middle" opacity="0.8">OBS 1</text>
+    
+    <text x="353" y="245" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" 
+          font-size="11" font-weight="600" fill="#ffcc80" letter-spacing="1.5px" text-anchor="middle" opacity="0.8">OBS 2</text>
+
+    <!-- ==================== WILDLIFE SILHOUETTES (MINIMALIST ALPINE IBEX) ==================== -->
+    
+    <!-- 1. Central Hero Ibex (Jointly detected, in overlap) - Pure clean vector silhouette -->
+    <g id="ibex-hero" transform="translate(236, 275) scale(0.42)">
+      <!-- Body, legs, posture -->
+      <path d="M 40,165 
+               L 41,135 Q 43,112 52,102 Q 62,92 73,93 L 78,80 Q 80,70 85,67 
+               Q 90,64 96,67 L 99,74 L 94,84 Q 95,92 92,104 Q 84,122 82,140 
+               L 87,165 L 81,165 L 76,138 L 54,138 L 47,165 Z" fill="#ffffff" />
+      <path d="M 40,135 Q 33,137 27,143 L 18,165 L 24,165 L 32,143 L 42,143 Z" fill="#ffffff"/>
+      <path d="M 68,135 L 72,165 L 78,165 L 75,135 Z" fill="#ffffff"/>
+      <!-- Characteristic sweeping horn -->
+      <path d="M 85,67 
+               C 83,44 73,20 54,6 
+               C 38,-4 22,-3 10,5 
+               C 3,11 -2,20 1,26 
+               C 5,29 10,26 14,19 
+               C 24,13 36,11 47,18 
+               C 61,27 69,46 75,67 Z" fill="#ffffff"/>
+      <!-- Subtle beard -->
+      <polygon points="97,79 103,90 98,88" fill="#ffffff"/>
+    </g>
+
+    <!-- 2. Small minimalist ibex in Obs 1 lobe (subtle, muted) -->
+    <g id="ibex-obs1" transform="translate(148, 320) scale(0.24)" opacity="0.75">
+      <path d="M 40,165 L 41,135 Q 43,112 52,102 Q 62,92 73,93 L 78,80 Q 80,70 85,67 Q 90,64 96,67 L 99,74 L 94,84 Q 95,92 92,104 Q 84,122 82,140 L 87,165 L 81,165 L 76,138 L 54,138 L 47,165 Z" fill="#90caf9" />
+      <path d="M 40,135 Q 33,137 27,143 L 18,165 L 24,165 L 32,143 L 42,143 Z" fill="#90caf9"/>
+      <path d="M 85,67 C 83,44 73,20 54,6 C 38,-4 22,-3 10,5 C 3,11 -2,20 1,26 C 5,29 10,26 14,19 C 24,13 36,11 47,18 C 61,27 69,46 75,67 Z" fill="#90caf9"/>
+    </g>
+
+    <!-- 3. Small minimalist ibex in Obs 2 lobe (subtle, muted) -->
+    <g id="ibex-obs2" transform="translate(382, 328) scale(-0.24, 0.24)" opacity="0.75">
+      <path d="M 40,165 L 41,135 Q 43,112 52,102 Q 62,92 73,93 L 78,80 Q 80,70 85,67 Q 90,64 96,67 L 99,74 L 94,84 Q 95,92 92,104 Q 84,122 82,140 L 87,165 L 81,165 L 76,138 L 54,138 L 47,165 Z" fill="#ffcc80" />
+      <path d="M 40,135 Q 33,137 27,143 L 18,165 L 24,165 L 32,143 L 42,143 Z" fill="#ffcc80"/>
+      <path d="M 85,67 C 83,44 73,20 54,6 C 38,-4 22,-3 10,5 C 3,11 -2,20 1,26 C 5,29 10,26 14,19 C 24,13 36,11 47,18 C 61,27 69,46 75,67 Z" fill="#ffcc80"/>
+    </g>
+
+    <!-- 4. Subtle, delicate dashed ghost outline outside (Unobserved p < 1) -->
+    <g id="ibex-missed" transform="translate(365, 205) scale(0.20)" opacity="0.35">
+      <path d="M 40,165 L 41,135 Q 43,112 52,102 Q 62,92 73,93 L 78,80 Q 80,70 85,67 Q 90,64 96,67 L 99,74 L 94,84 Q 95,92 92,104 Q 84,122 82,140 L 87,165 L 81,165 L 76,138 L 54,138 L 47,165 Z" 
+            fill="none" stroke="#e0e1dd" stroke-width="4" stroke-dasharray="6,6" />
+      <path d="M 85,67 C 83,44 73,20 54,6 C 38,-4 22,-3 10,5 C 3,11 -2,20 1,26 C 5,29 10,26 14,19 C 24,13 36,11 47,18 C 61,27 69,46 75,67 Z" 
+            fill="none" stroke="#e0e1dd" stroke-width="4" stroke-dasharray="6,6" />
+    </g>
+
+    <!-- ==================== TYPOGRAPHY (CLEAN & RESTRAINED) ==================== -->
+    <!-- Clean, timeless geometric wordmark DOAS -->
+    <text x="259" y="112" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="46" 
+          font-weight="800" 
+          fill="#ffffff" 
+          text-anchor="middle" 
+          letter-spacing="7px">DOAS</text>
+
+    <!-- Minimalist Subtitle -->
+    <text x="259" y="134" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="8.5" 
+          font-weight="600" 
+          fill="#94a3b8" 
+          text-anchor="middle" 
+          letter-spacing="2.8px">DOUBLE OBSERVER ADJUSTED SURVEY</text>
+
+    <!-- Bottom: Subtle, elegant mathematical mark (N̂) -->
+    <text x="259" y="515" 
+          font-family="'Cambria Math', 'Times New Roman', serif" 
+          font-size="14" 
+          font-style="italic" 
+          fill="#64748b" 
+          text-anchor="middle" 
+          letter-spacing="3px">N̂ = C / p̂</text>
+  </g>
+
+  <!-- ==================== ELEGANT, CRISP HEXAGON BORDER ==================== -->
+  <!-- Thin, refined border (8px) in muted off-white / light slate -->
+  <polygon points="259.0,25.0 497.2,162.5 497.2,437.5 259.0,575.0 20.8,437.5 20.8,162.5" 
+           fill="none" 
+           stroke="#e2e8f0" 
+           stroke-width="8" 
+           stroke-linejoin="round" />
+</svg>
