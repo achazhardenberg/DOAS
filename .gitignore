@@ -11,3 +11,4 @@ simulation_*.R
 !man/figures/*.png
 !docs/reference/figures/*.png
 !docs/logo.png
+ROADMAP.md

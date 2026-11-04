@@ -12,3 +12,4 @@
 ^\.Rhistory$
 ^_pkgdown\.yml$
 ^\.github$
+^ROADMAP\.md$
