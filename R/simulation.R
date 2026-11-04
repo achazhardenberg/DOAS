@@ -357,6 +357,7 @@ simulate_survey <- function(
         )
         data.frame(
             sector_id = m,
+            survey_type = if (m %in% do_sectors) "DO" else "Block",
             total_count = res$total_count,
             groups_both = res$groups_both,
             groups_obs1 = res$groups_obs1,

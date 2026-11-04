@@ -75,6 +75,11 @@ my_survey_data <- simulate_survey(
 head(my_survey_data)
 ```
 
+> **Understanding DO vs. Block Sectors:**
+> In this survey, 12 out of 24 sectors were randomly selected for Double Observer surveys (`surv_areas = 12`):
+> - **Block sectors** (e.g. sectors 1, 2, and 4; `survey_type == "Block"`): Only a **single observer** surveyed the sector. That observer detected the groups (`detected_groups = 1` for Sector 1, counting `total_count = 31` animals). The double-observer columns (`groups_both`, `groups_obs1`, `groups_obs2`) are `NA` because only one observer surveyed those sectors.
+> - **Double Observer (DO) sectors** (e.g. sectors 3, 5, and 6; `survey_type == "DO"`): **Two observers** surveyed simultaneously, recording which groups were spotted by both observers vs. only Observer 1 or Observer 2. `DOAS` uses these DO sectors to estimate detection probability and adjust the single-observer block counts.
+
 ### Formatting & Inspecting Raw Field Sheets (`doas_data`)
 
 If your field data is recorded in **long format** (for example, one row per detected group or one row per observer sighting) or uses custom column names, use `doas_data()` first to aggregate and visually verify the sector-level table before running `doas()`:
