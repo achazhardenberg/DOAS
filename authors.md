@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/achazhardenberg/DOAS/blob/master/inst/CITATION)
+[`inst/CITATION`](https://github.com/achazhardenberg/DOAS/blob/v1.0.0/inst/CITATION)
 
 von Hardenberg A (2026). *DOAS: Double Observer Adjusted Survey
 Framework*. R package version 0.1.0,
