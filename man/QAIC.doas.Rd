@@ -2,12 +2,12 @@
 % Please edit documentation in R/qaic.R
 \name{QAIC.doas}
 \alias{QAIC.doas}
-\title{QAIC method for DOAS models}
+\title{QAIC Method for Frequentist DOAS Models}
 \usage{
 \method{QAIC}{doas}(object, ...)
 }
 \arguments{
-\item{object}{A fitted `doas` object.}
+\item{object}{A fitted `doas` object with \code{method = "frequentist"}.}
 
 \item{...}{Optionally more fitted `doas` objects.}
 }
@@ -15,15 +15,15 @@
 A numeric QAIC value, or a data frame if multiple models are passed.
 }
 \description{
-Extracts the QAIC for DOAS models that used a covariate formula.
+Extracts the QAIC for frequentist DOAS models that used a covariate formula.
 Standard AIC is undefined for the quasi-binomial GLM used under the hood,
 so QAIC penalizes the binomial likelihood by the estimated overdispersion
-parameter (c-hat).
+parameter (\eqn{\hat{c}}).
 }
 \examples{
 \dontrun{
-mod1 <- doas(data, formula = ~ effort)
-mod2 <- doas(data, formula = ~ effort + habitat)
+mod1 <- doas(data, method = "frequentist", formula = ~ effort)
+mod2 <- doas(data, method = "frequentist", formula = ~ effort + habitat)
 QAIC(mod1, mod2)
 }
 }

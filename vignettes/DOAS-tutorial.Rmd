@@ -20,9 +20,10 @@ The **Double Observer Adjusted Survey (DOAS)** framework reduces the effort requ
 
 This tutorial covers the complete workflow of the `DOAS` package. You will learn how to:
 1. **Analyze real survey data** using the `doas()` function.
-2. **Simulate animal populations and surveys** using `simulate_pop()` and `simulate_survey()`.
-3. **Run power analyses** using `doas_power()` to plan your field sampling efforts.
-4. **Understand the underlying base estimators**.
+2. **Model covariates on detection probability** using `formula` and compare models with `QAIC()`.
+3. **Simulate animal populations and surveys** using `simulate_pop()` and `simulate_survey()`.
+4. **Run power analyses** using `doas_power()` to plan your field sampling efforts.
+5. **Understand the underlying base estimators**.
 
 ---
 
@@ -45,7 +46,7 @@ For sectors that received a Double Observer survey, provide the following column
 
 ### Example Data
 
-Let's imagine you surveyed 6 valleys. You did a standard block count in 4 of them, but you deployed two independent observers in 2 of the valleys.
+Let's imagine you surveyed 6 valleys. You did a standard block count in 3 of them, and deployed two observers in 3 of the valleys, while also recording survey `effort` (hours) and `habitat` type.
 
 ```{r setup-real-data}
 library(DOAS)
@@ -57,27 +58,61 @@ my_survey_data <- data.frame(
   total_count = c(55, 30, 80, 100, 20, 0),
 
   # Total unique groups seen
-  detected_groups = c(8, 5, 12, 10, 2, 0),
+  detected_groups = c(8, 5, 13, 10, 2, 0),
 
   # Mark-Recapture data for DO sectors
-  groups_both = c(6, 3, NA, NA, NA, NA),
-  groups_obs1 = c(1, 1, NA, NA, NA, NA),
-  groups_obs2 = c(1, 1, NA, NA, NA, NA)
+  groups_both = c(6, 3, 10, NA, NA, NA),
+  groups_obs1 = c(1, 1, 2, NA, NA, NA),
+  groups_obs2 = c(1, 1, 1, NA, NA, NA),
+
+  # Optional sector-level covariates
+  effort = c(10, 6, 12, 8, 5, 4),
+  habitat = c("Open", "Forest", "Open", "Open", "Forest", "Forest")
 )
 
 print(my_survey_data)
 ```
 
+### Formatting & Inspecting Raw Field Sheets (`doas_data`)
+
+If your field data is recorded in **long format** (for example, one row per detected group or one row per observer sighting) or uses custom column names, use `doas_data()` first to aggregate and visually verify the sector-level table before running `doas()`:
+
+```{r format-long-data}
+raw_field_sheet <- data.frame(
+  valley = c("Valley_A", "Valley_A", "Valley_A", "Valley_B", "Valley_B", "Valley_C"),
+  herd_size = c(35, 10, 10, 20, 10, 80),
+  seen_by = c("both", "obs1", "obs2", "both", "obs1", "block"),
+  effort = c(10, 10, 10, 6, 6, 12)
+)
+
+inspected_data <- doas_data(
+  raw_field_sheet,
+  format = "group",
+  sector = "valley",
+  count = "herd_size",
+  seen_by = "seen_by",
+  do_sectors = c("Valley_A", "Valley_B"),
+  covariates = "effort"
+)
+
+print(inspected_data)
+```
+
 ### Running the Estimator
 
-You can run the estimation using different observer assumptions (`obs_type`):
-- `"independent"`: Default. Assumes observers scanned independently (uses Chapman estimator).
-- `"dependent"`: Assumes Observer 1 points out animals to Observer 2, and Observer 2 only records what Observer 1 missed (Zippin estimator).
-- `"bayesian"`: Uses Monte Carlo simulation from Conjugate Beta-Binomial posteriors.
+`doas()` separates the estimation setup into three intuitive arguments:
+- **`method`**: `"frequentist"` (default analytic Chapman/Zippin) or `"bayesian"` (multi-chain MCMC Gibbs sampler).
+- **`obs_type`**: `"independent"` (default, observers scan independently) or `"dependent"` (Observer 1 points out detected groups and Observer 2 records only missed groups).
+- **`pooling`**: `"hybrid"` (default, uses sector-specific DO estimates in DO sectors and extrapolates Block sectors) or `"global"` (extrapolates all sectors using the pooled primary detection probability).
 
 ```{r run-doas}
-# Default Hybrid estimation with Independent observers
-results <- doas(my_survey_data, method = "hybrid", obs_type = "independent")
+# Default Frequentist estimation with Independent observers and Hybrid pooling
+results <- doas(
+  my_survey_data,
+  method = "frequentist",
+  obs_type = "independent",
+  pooling = "hybrid"
+)
 
 summary(results)
 ```
@@ -90,7 +125,54 @@ knitr::kable(results$sector_estimates, digits = 2)
 
 ---
 
-## 2. Simulating Populations and Surveys
+## 2. Modeling Covariates on Detection Probability (`formula` & `QAIC`)
+
+If detection probability varies across sectors due to survey effort, visibility, habitat, or mean group size (`mean_group_size`, which is computed automatically inside `doas()`), you can pass a one-sided R formula to `formula`:
+
+- **Frequentist (`method = "frequentist"`):** Fits a quasi-binomial logistic regression (`p_hat ~ covariates`, weighted by `G_est`) on the DO sectors and propagates the full multivariate Delta-method covariance across extrapolated sectors. Competing covariate models can be compared using `QAIC()`.
+- **Bayesian (`method = "bayesian"`):** Runs a multi-chain Metropolis-within-Gibbs logistic regression coupled to the posterior draws of latent group abundance $G_i$, reporting posterior means, standard deviations, 95% credible intervals, $\hat{R}$, and ESS for every regression coefficient.
+
+```{r run-covariates}
+# Frequentist covariate model with survey effort
+mod_effort <- doas(my_survey_data, method = "frequentist", formula = ~effort)
+mod_group <- doas(my_survey_data, method = "frequentist", formula = ~mean_group_size)
+
+summary(mod_effort)
+
+# Compare competing covariate models using Quasi-AIC (QAIC)
+QAIC(mod_effort, mod_group)
+```
+
+You can also fit covariate models in the multi-chain Bayesian framework and compare them using the Widely Applicable Information Criterion (`WAIC()`):
+
+```{r run-bayes-covariates}
+set.seed(42)
+mod_bayes_null <- doas(
+  my_survey_data,
+  method = "bayesian",
+  obs_type = "independent",
+  chains = 4,
+  iter = 1000
+)
+
+mod_bayes_cov <- doas(
+  my_survey_data,
+  method = "bayesian",
+  obs_type = "independent",
+  formula = ~effort,
+  chains = 4,
+  iter = 1000
+)
+
+summary(mod_bayes_cov)
+
+# Compare Bayesian models using WAIC
+WAIC(mod_bayes_null, mod_bayes_cov)
+```
+
+---
+
+## 3. Simulating Populations and Surveys
 
 To test the method or plan study designs, the DOAS package includes functions to simulate realistic cluster-sampled populations.
 
@@ -113,7 +195,7 @@ simulated_population$tot_pop
 
 ### Simulating a DOAS Survey (`simulate_survey`)
 
-`simulate_survey()` takes the "true" population and applies detection probabilities to mimic field data collection.
+`simulate_survey()` takes the "true" population and applies detection probabilities to mimic field data collection, including an optional sector-level covariate effect (`cov_effect`).
 
 ```{r sim_survey}
 # Simulate field observers surveying the population
@@ -124,7 +206,8 @@ survey_data <- simulate_survey(
   det_group = 0.9, # Group size has minor influence on detectability
   obs_effect = 0.75, # Observer 2 is 75% as effective as Observer 1
   detvar = 0.05, # Small variance in detection probability across sectors
-  surv_areas = 5 # Out of 15 areas, 5 will get Double Observers
+  surv_areas = 5, # Out of 15 areas, 5 will get Double Observers
+  cov_effect = 0.4 # Log-odds slope of the sector 'covariate' on detection
 )
 
 head(survey_data)
@@ -133,24 +216,33 @@ head(survey_data)
 This output is automatically formatted and ready to be plugged into `doas()`!
 
 ```{r run-sim-doas}
-# We use 'global' method to pool detection probabilities, which is
-# recommended to avoid small-sample biases on sparse sectors.
-sim_results <- doas(survey_data, method = "global", obs_type = "independent")
+# We use 'global' pooling to pool detection probabilities across sectors
+sim_results <- doas(
+  survey_data,
+  method = "frequentist",
+  obs_type = "independent",
+  pooling = "global"
+)
 summary(sim_results)
 ```
 
-### Advanced: The Bayesian Approach
+### Advanced: The Multi-Chain Bayesian Approach
 
-When observer detections are extremely low, classic estimators can sometimes produce negative estimates or fail. You can pass `obs_type = "bayesian"` to use a rigorous Monte Carlo Beta-Binomial framework that respects natural boundaries (i.e. you cannot estimate fewer animals than you physically saw).
+When observer detections are sparse—or in dependent-observer surveys where the secondary observer occasionally spots as many groups as the primary observer—classic frequentist estimators can suffer from small-sample instability. Passing `method = "bayesian"` runs a multi-chain Collapsed Poisson-Gamma-Beta Gibbs Sampler (supporting both `obs_type = "independent"` and `obs_type = "dependent"`) with Gelman-Rubin $\hat{R}$ and Effective Sample Size (ESS) diagnostics.
 
 ```{r run-sim-doas-bayes}
-bayes_results <- doas(survey_data, method = "global", obs_type = "bayesian")
+bayes_results <- doas(
+  survey_data,
+  method = "bayesian",
+  obs_type = "independent",
+  pooling = "global"
+)
 summary(bayes_results)
 ```
 
 ---
 
-## 3. Power Analysis (`doas_power`)
+## 4. Power Analysis (`doas_power`)
 
 If you are planning a field season, you can use `doas_power()` to understand how many DO surveys you need to achieve reliable confidence intervals and minimize bias.
 
@@ -168,8 +260,9 @@ power_results <- doas_power(
   intra_group_det = 1.0,
   det_group = 0.9, # Low group-size heterogeneity
   detvar = 0.05, # Low inter-sector detection variance
-  method = "global",
-  obs_type = "independent"
+  method = "frequentist",
+  obs_type = "independent",
+  pooling = "global"
 )
 
 knitr::kable(power_results, digits = 3)
@@ -179,28 +272,34 @@ Higher effort (more `surv_areas`) generally yields improved CI coverage and lowe
 
 ---
 
-## 4. Understanding Base Estimators
+## 5. Understanding Base Estimators
 
 The `doas()` function leverages several group-abundance estimators under the hood. For advanced applications, these are exported for you to use directly:
 
-### Chapman Estimator (Independent Observers)
+### Chapman Estimator (Frequentist Independent Observers)
 A bias-adjusted Lincoln-Petersen estimator.
 ```{r base-chapman}
 chapman_estimate(both = 10, obs1_only = 2, obs2_only = 3)
 chapman_variance(both = 10, obs1_only = 2, obs2_only = 3)
 ```
 
-### Zippin Estimator (Dependent Observers)
+### Zippin Estimator (Frequentist Dependent Observers)
 A removal estimator for primary/secondary observer setups.
 ```{r base-zippin}
 dependent_zippin_estimate(both = 10, obs1_only = 2, obs2_only = 3)
 dependent_zippin_variance(both = 10, obs1_only = 2, obs2_only = 3)
 ```
 
-### Bayesian Conjugate Estimator
-Uses Monte Carlo simulations to draw from Beta posteriors, naturally preventing negative estimates and bounding credible intervals.
+### Bayesian Multi-Chain Gibbs Estimator (Independent & Dependent Observers)
+Uses a multi-chain Collapsed Poisson-Gamma-Beta Gibbs Sampler to sample latent undetected groups and observer detection probabilities.
 ```{r base-bayesian}
 set.seed(123)
-bayesian_res <- bayesian_conjugate_estimate(both = 10, obs1_only = 2, obs2_only = 3, iter = 1000)
-c(Mean = bayesian_res$mean, Variance = bayesian_res$var)
+bayesian_res <- bayesian_conjugate_estimate(
+  both = 10,
+  obs1_only = 2,
+  obs2_only = 3,
+  obs_type = "independent",
+  iter = 1000
+)
+c(Mean = bayesian_res$mean, Variance = bayesian_res$var, Rhat = bayesian_res$rhat)
 ```

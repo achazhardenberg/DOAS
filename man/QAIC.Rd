@@ -2,19 +2,20 @@
 % Please edit documentation in R/qaic.R
 \name{QAIC}
 \alias{QAIC}
-\title{Quasi-Akaike Information Criterion}
+\title{Quasi-Akaike Information Criterion (QAIC)}
 \usage{
 QAIC(object, ...)
 }
 \arguments{
-\item{object}{A fitted model object (e.g., a `doas` model).}
+\item{object}{A fitted model object (e.g., a frequentist `doas` model).}
 
-\item{...}{Optionally more fitted model objects.}
+\item{...}{Optionally more fitted model objects for model comparison.}
 }
 \value{
-A numeric QAIC value, or a data frame if multiple models are passed.
+A numeric QAIC value, or a comparison data frame if multiple models are passed.
 }
 \description{
-Computes the Quasi-Akaike Information Criterion (QAIC) for statistical models
-that handle overdispersion (such as quasi-binomial models).
+Computes the Quasi-Akaike Information Criterion (QAIC) for frequentist statistical
+models that handle overdispersion (such as quasi-binomial GLM covariate models in \code{\link{doas}}).
+For Bayesian MCMC models (\code{method = "bayesian"}), use \code{\link{WAIC}} instead.
 }

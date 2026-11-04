@@ -1,3 +1,76 @@
+#' Run a Single Power Simulation Replicate
+#'
+#' @keywords internal
+#' @noRd
+run_single_power_sim <- function(
+    sa,
+    pop_size,
+    mean_group,
+    tot_areas,
+    area_sizes,
+    det_p1,
+    intra_group_det,
+    det_group,
+    obs_effect,
+    detvar,
+    cov_effect,
+    method,
+    obs_type,
+    pooling,
+    formula,
+    ci_method
+) {
+    pop <- simulate_pop(
+        pop_size = pop_size,
+        mean_group = mean_group,
+        tot_areas = tot_areas,
+        area_sizes = area_sizes
+    )
+
+    survey_data <- simulate_survey(
+        sim_pop = pop$sim_pop,
+        det_p1 = det_p1,
+        intra_group_det = intra_group_det,
+        det_group = det_group,
+        obs_effect = obs_effect,
+        detvar = detvar,
+        surv_areas = sa,
+        cov_effect = cov_effect
+    )
+
+    est <- tryCatch(
+        {
+            doas(
+                survey_data,
+                method = method,
+                obs_type = obs_type,
+                pooling = pooling,
+                formula = formula,
+                ci_method = ci_method
+            )
+        },
+        error = function(e) NULL
+    )
+
+    if (!is.null(est) && !is.na(est$total_abundance)) {
+        c(
+            true_N = pop$tot_pop,
+            est_N = est$total_abundance,
+            se_N = est$se_abundance,
+            ci_lower = est$ci_lower,
+            ci_upper = est$ci_upper
+        )
+    } else {
+        c(
+            true_N = NA_real_,
+            est_N = NA_real_,
+            se_N = NA_real_,
+            ci_lower = NA_real_,
+            ci_upper = NA_real_
+        )
+    }
+}
+
 #' DOAS Power Analysis
 #'
 #' Runs multiple simulations to evaluate the statistical performance (bias,
@@ -14,9 +87,12 @@
 #' @param det_group Base detection factor for group size scaling.
 #' @param obs_effect Observer 2 relative efficiency.
 #' @param detvar Standard deviation for detection probability across sectors.
-#' @param method Estimation method ("hybrid" or "global").
-#' @param ci_method Confidence interval method ("lognormal" or "bootstrap").
-#' @param obs_type Observer geometry ("independent", "dependent", or "bayesian").
+#' @param cov_effect Numeric log-odds effect of a simulated sector-level covariate (\code{covariate}) on detection probability (default \code{0}).
+#' @param method Statistical inference paradigm (\code{"frequentist"} or \code{"bayesian"}).
+#' @param obs_type Observer field protocol (\code{"independent"} or \code{"dependent"}).
+#' @param pooling Sector pooling strategy (\code{"hybrid"} or \code{"global"}).
+#' @param formula Optional formula (e.g., \code{~ covariate} or \code{~ mean_group_size}) passed to \code{\link{doas}}.
+#' @param ci_method Confidence interval method (\code{"lognormal"} or \code{"bootstrap"}).
 #'
 #' @return A data frame summarizing performance metrics for each scenario in \code{surv_areas}:
 #'   - \code{surv_areas}: Number of DO sectors surveyed
@@ -40,70 +116,48 @@ doas_power <- function(
     det_group = 0.9,
     obs_effect = 0.75,
     detvar = 0.05,
-    method = c("hybrid", "global"),
-    ci_method = c("lognormal", "bootstrap"),
-    obs_type = c("independent", "dependent", "bayesian")
+    cov_effect = 0,
+    method = c("frequentist", "bayesian"),
+    obs_type = c("independent", "dependent"),
+    pooling = c("hybrid", "global"),
+    formula = NULL,
+    ci_method = c("lognormal", "bootstrap")
 ) {
     method <- match.arg(method)
-    ci_method <- match.arg(ci_method)
     obs_type <- match.arg(obs_type)
+    pooling <- match.arg(pooling)
+    ci_method <- match.arg(ci_method)
 
     results_list <- list()
 
     for (sa in surv_areas) {
-        sim_results <- data.frame(
-            sim_id = 1:n_sims,
-            true_N = NA,
-            est_N = NA,
-            se_N = NA,
-            ci_lower = NA,
-            ci_upper = NA
+        sim_mat <- vapply(
+            seq_len(n_sims),
+            function(i) {
+                run_single_power_sim(
+                    sa = sa,
+                    pop_size = pop_size,
+                    mean_group = mean_group,
+                    tot_areas = tot_areas,
+                    area_sizes = area_sizes,
+                    det_p1 = det_p1,
+                    intra_group_det = intra_group_det,
+                    det_group = det_group,
+                    obs_effect = obs_effect,
+                    detvar = detvar,
+                    cov_effect = cov_effect,
+                    method = method,
+                    obs_type = obs_type,
+                    pooling = pooling,
+                    formula = formula,
+                    ci_method = ci_method
+                )
+            },
+            numeric(5)
         )
 
-        for (i in seq_len(n_sims)) {
-            # Simulate population
-            pop <- simulate_pop(
-                pop_size = pop_size,
-                mean_group = mean_group,
-                tot_areas = tot_areas,
-                area_sizes = area_sizes
-            )
-
-            # Simulate survey for this number of DO areas
-            survey_data <- simulate_survey(
-                sim_pop = pop$sim_pop,
-                det_p1 = det_p1,
-                intra_group_det = intra_group_det,
-                det_group = det_group,
-                obs_effect = obs_effect,
-                detvar = detvar,
-                surv_areas = sa
-            )
-
-            # Estimate abundance
-            est <- tryCatch(
-                {
-                    doas(
-                        survey_data,
-                        method = method,
-                        ci_method = ci_method,
-                        obs_type = obs_type
-                    )
-                },
-                error = function(e) NULL
-            )
-
-            if (!is.null(est) && !is.na(est$total_abundance)) {
-                sim_results$true_N[i] <- pop$tot_pop
-                sim_results$est_N[i] <- est$total_abundance
-                sim_results$se_N[i] <- est$se_abundance
-                sim_results$ci_lower[i] <- est$ci_lower
-                sim_results$ci_upper[i] <- est$ci_upper
-            }
-        }
-
-        # Remove failed simulations (e.g. 0 DO counts)
-        valid_sims <- sim_results[!is.na(sim_results$est_N), ]
+        sim_results <- as.data.frame(t(sim_mat))
+        valid_sims <- sim_results[!is.na(sim_results$est_N), , drop = FALSE]
         n_valid <- nrow(valid_sims)
 
         if (n_valid > 0) {

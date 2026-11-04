@@ -1,8 +1,9 @@
+# Paired Power Benchmark: Original Paper (Gran Paradiso) & Sparse Scenarios
 devtools::load_all()
 
 set.seed(42)
 
-cat("Running DOAS Power Analysis with Chapman (Independent) Estimator...\n")
+cat("Running DOAS Power Analysis with Frequentist Chapman Estimator...\n")
 res_chapman <- doas_power(
     n_sims = 100,
     surv_areas = c(2, 4, 6, 8),
@@ -12,14 +13,15 @@ res_chapman <- doas_power(
     det_p1 = 0.5,
     intra_group_det = 0.9,
     det_group = 0.5,
-    obs_effect = 0.5, # Make observer 2 weak to induce sparsity/low detection
+    obs_effect = 0.5,
     detvar = 0.3,
-    method = "hybrid",
-    ci_method = "lognormal",
-    obs_type = "independent"
+    method = "frequentist",
+    obs_type = "independent",
+    pooling = "hybrid",
+    ci_method = "lognormal"
 )
 
-cat("\nRunning DOAS Power Analysis with Bayesian Estimator...\n")
+cat("\nRunning DOAS Power Analysis with Multi-Chain Bayesian Estimator...\n")
 res_bayesian <- doas_power(
     n_sims = 100,
     surv_areas = c(2, 4, 6, 8),
@@ -31,13 +33,14 @@ res_bayesian <- doas_power(
     det_group = 0.5,
     obs_effect = 0.5,
     detvar = 0.3,
-    method = "hybrid",
-    ci_method = "lognormal",
-    obs_type = "bayesian"
+    method = "bayesian",
+    obs_type = "independent",
+    pooling = "hybrid",
+    ci_method = "lognormal"
 )
 
-cat("\n--- CHAPMAN ESTIMATOR PERFORMANCE ---\n")
+cat("\n--- FREQUENTIST CHAPMAN ESTIMATOR PERFORMANCE ---\n")
 print(round(res_chapman, 3))
 
-cat("\n--- BAYESIAN ESTIMATOR PERFORMANCE ---\n")
+cat("\n--- MULTI-CHAIN BAYESIAN ESTIMATOR PERFORMANCE ---\n")
 print(round(res_bayesian, 3))
