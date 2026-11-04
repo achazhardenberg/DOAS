@@ -1,4 +1,4 @@
-# DOAS: Double Observer Adjusted Survey
+# DOAS: Double Observer Adjusted Survey <img src="man/figures/logo.png" align="right" height="139" alt="DOAS logo" />
 
 <!-- badges: start -->
 <!-- badges: end -->

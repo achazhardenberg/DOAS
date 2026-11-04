@@ -8,3 +8,4 @@ inst/doc
 debug_*.R
 simulation_*.R
 *.png
+!man/figures/*.png
