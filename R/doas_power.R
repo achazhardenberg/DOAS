@@ -13,29 +13,39 @@ run_single_power_sim <- function(
     det_group,
     obs_effect,
     detvar,
+    p_formula,
+    p_betas,
+    n_formula,
+    n_betas,
+    covariates,
     cov_effect,
+    n_cov_effect,
     method,
     obs_type,
     pooling,
-    p_formula,
-    n_formula,
     ci_method
 ) {
     pop <- simulate_pop(
         pop_size = pop_size,
         mean_group = mean_group,
         tot_areas = tot_areas,
-        area_sizes = area_sizes
+        area_sizes = area_sizes,
+        n_formula = n_formula,
+        n_betas = n_betas,
+        covariates = covariates,
+        n_cov_effect = n_cov_effect
     )
 
     survey_data <- simulate_survey(
-        sim_pop = pop$sim_pop,
+        sim_pop = pop,
         det_p1 = det_p1,
         intra_group_det = intra_group_det,
         det_group = det_group,
         obs_effect = obs_effect,
         detvar = detvar,
         surv_areas = sa,
+        p_formula = p_formula,
+        p_betas = p_betas,
         cov_effect = cov_effect
     )
 
@@ -56,11 +66,11 @@ run_single_power_sim <- function(
 
     if (!is.null(est) && !is.na(est$total_abundance)) {
         c(
-            true_N = pop$tot_pop,
-            est_N = est$total_abundance,
-            se_N = est$se_abundance,
-            ci_lower = est$ci_lower,
-            ci_upper = est$ci_upper
+            true_N = as.numeric(pop$tot_pop),
+            est_N = as.numeric(est$total_abundance),
+            se_N = as.numeric(est$se_abundance),
+            ci_lower = as.numeric(est$ci_lower),
+            ci_upper = as.numeric(est$ci_upper)
         )
     } else {
         c(
@@ -77,24 +87,30 @@ run_single_power_sim <- function(
 #'
 #' Runs multiple simulations to evaluate the statistical performance (bias,
 #' precision, coverage) of the DOAS estimator under varying sampling efforts.
+#' Supports multi-covariate simulation and modeling on detection (\code{p_formula}, \code{p_betas})
+#' and abundance (\code{n_formula}, \code{n_betas}).
 #'
 #' @param n_sims Number of simulations to run per scenario.
 #' @param surv_areas Vector of Double Observer survey efforts to test (number of DO sectors).
 #' @param pop_size Average total population size for \code{\link{simulate_pop}}.
 #' @param mean_group Average group size for \code{\link{simulate_pop}}.
 #' @param tot_areas Total number of survey sectors.
-#' @param area_sizes Vector of probabilities/sizes for assigning groups to sectors. If NULL, uniform probabilities are used.
+#' @param area_sizes Vector of probabilities/sizes for assigning groups to sectors. If NULL, uniform or covariate-driven probabilities are used.
 #' @param det_p1 Base detection probability for Observer 1.
 #' @param intra_group_det Mean factor for count errors.
 #' @param det_group Base detection factor for group size scaling.
 #' @param obs_effect Observer 2 relative efficiency.
 #' @param detvar Standard deviation for detection probability across sectors.
-#' @param cov_effect Numeric log-odds effect of a simulated sector-level covariate (\code{covariate}) on detection probability (default \code{0}).
+#' @param p_formula Optional detection formula passed to simulation and \code{\link{doas}} (e.g., \code{~ effort + elevation}).
+#' @param p_betas Optional named numeric vector of logit coefficients for \code{p_formula} in \code{\link{simulate_survey}}.
+#' @param n_formula Optional abundance formula passed to simulation and \code{\link{doas}} (e.g., \code{~ elevation + forest}).
+#' @param n_betas Optional named numeric vector of log-linear coefficients for \code{n_formula} in \code{\link{simulate_pop}}.
+#' @param covariates Optional data frame of sector-level covariates.
+#' @param cov_effect Numeric log-odds effect of a single simulated detection covariate (\code{covariate}) (retained for backward compatibility).
+#' @param n_cov_effect Numeric log-linear effect of a single simulated abundance covariate (\code{habitat}) (retained for backward compatibility).
 #' @param method Statistical inference paradigm (\code{"frequentist"} or \code{"bayesian"}).
 #' @param obs_type Observer field protocol (\code{"independent"} or \code{"dependent"}).
 #' @param pooling Sector pooling strategy (\code{"hybrid"} or \code{"global"}).
-#' @param p_formula Optional detection formula (e.g., \code{~ covariate} or \code{~ mean_group_size}) passed to \code{\link{doas}}.
-#' @param n_formula Optional abundance formula passed to \code{\link{doas}}.
 #' @param ci_method Confidence interval method (\code{"lognormal"} or \code{"bootstrap"}).
 #'
 #' @return A data frame summarizing performance metrics for each scenario in \code{surv_areas}:
@@ -119,12 +135,16 @@ doas_power <- function(
     det_group = 0.9,
     obs_effect = 0.75,
     detvar = 0.05,
+    p_formula = NULL,
+    p_betas = NULL,
+    n_formula = NULL,
+    n_betas = NULL,
+    covariates = NULL,
     cov_effect = 0,
+    n_cov_effect = 0,
     method = c("frequentist", "bayesian"),
     obs_type = c("independent", "dependent"),
     pooling = c("hybrid", "global"),
-    p_formula = NULL,
-    n_formula = NULL,
     ci_method = c("lognormal", "bootstrap")
 ) {
     method <- match.arg(method)
@@ -149,53 +169,58 @@ doas_power <- function(
                     det_group = det_group,
                     obs_effect = obs_effect,
                     detvar = detvar,
+                    p_formula = p_formula,
+                    p_betas = p_betas,
+                    n_formula = n_formula,
+                    n_betas = n_betas,
+                    covariates = covariates,
                     cov_effect = cov_effect,
+                    n_cov_effect = n_cov_effect,
                     method = method,
                     obs_type = obs_type,
                     pooling = pooling,
-                    p_formula = p_formula,
-                    n_formula = n_formula,
                     ci_method = ci_method
                 )
             },
             numeric(5)
         )
 
-        sim_results <- as.data.frame(t(sim_mat))
-        valid_sims <- sim_results[!is.na(sim_results$est_N), , drop = FALSE]
-        n_valid <- nrow(valid_sims)
+        valid_idx <- which(!is.na(sim_mat["est_N", ]))
+        n_valid <- length(valid_idx)
 
         if (n_valid > 0) {
-            mean_true <- mean(valid_sims$true_N)
-            mean_est <- mean(valid_sims$est_N)
+            true_N <- sim_mat["true_N", valid_idx]
+            est_N <- sim_mat["est_N", valid_idx]
+            se_N <- sim_mat["se_N", valid_idx]
+            ci_l <- sim_mat["ci_lower", valid_idx]
+            ci_u <- sim_mat["ci_upper", valid_idx]
+
+            mean_true <- mean(true_N)
+            mean_est <- mean(est_N)
             rel_bias <- (mean_est - mean_true) / mean_true
-            rmse <- sqrt(mean((valid_sims$est_N - valid_sims$true_N)^2))
-            coverage <- mean(
-                valid_sims$true_N >= valid_sims$ci_lower &
-                    valid_sims$true_N <= valid_sims$ci_upper
-            )
-            mean_cv <- mean(valid_sims$se_N / valid_sims$est_N, na.rm = TRUE)
-
-            results_list[[as.character(sa)]] <- data.frame(
-                surv_areas = sa,
-                successful_sims = n_valid,
-                mean_true_N = mean_true,
-                mean_est_N = mean_est,
-                rel_bias = rel_bias,
-                rmse = rmse,
-                coverage = coverage,
-                mean_cv = mean_cv
-            )
+            rmse <- sqrt(mean((est_N - true_N)^2))
+            coverage <- mean(true_N >= ci_l & true_N <= ci_u)
+            mean_cv <- mean(se_N / est_N, na.rm = TRUE)
         } else {
-            warning(sprintf("All simulations failed for surv_areas = %d", sa))
+            mean_true <- NA_real_
+            mean_est <- NA_real_
+            rel_bias <- NA_real_
+            rmse <- NA_real_
+            coverage <- NA_real_
+            mean_cv <- NA_real_
         }
+
+        results_list[[as.character(sa)]] <- data.frame(
+            surv_areas = sa,
+            successful_sims = n_valid,
+            mean_true_N = mean_true,
+            mean_est_N = mean_est,
+            rel_bias = rel_bias,
+            rmse = rmse,
+            coverage = coverage,
+            mean_cv = mean_cv
+        )
     }
 
-    if (length(results_list) > 0) {
-        final_results <- do.call(rbind, results_list)
-        rownames(final_results) <- NULL
-        return(final_results)
-    } else {
-        stop("All simulations failed.")
-    }
+    do.call(rbind, results_list)
 }

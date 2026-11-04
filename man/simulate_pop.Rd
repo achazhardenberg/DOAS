@@ -9,6 +9,9 @@ simulate_pop(
   mean_group,
   tot_areas,
   area_sizes = NULL,
+  n_formula = NULL,
+  n_betas = NULL,
+  covariates = NULL,
   n_cov_effect = 0
 )
 }
@@ -19,16 +22,30 @@ simulate_pop(
 
 \item{tot_areas}{Total number of survey sectors.}
 
-\item{area_sizes}{Vector of probabilities/sizes for assigning groups to sectors. If NULL,
-probabilities are proportional to \code{exp(n_cov_effect * habitat)} (uniform when \code{n_cov_effect = 0}).}
+\item{area_sizes}{Vector of relative probabilities/sizes for assigning groups to sectors.
+If NULL, probabilities are computed from \code{n_formula} and \code{n_betas} (or \code{n_cov_effect}).}
 
-\item{n_cov_effect}{Optional numeric log-linear effect of a simulated standard-normal sector
-habitat covariate (\code{habitat}) on true sector abundance (default \code{0}).}
+\item{n_formula}{Optional one-sided formula for sector abundance covariates (e.g. \code{~ elevation + forest}
+or \code{~ elevation * forest}).}
+
+\item{n_betas}{Optional named numeric vector of log-linear coefficients for terms in \code{n_formula}
+(e.g., \code{c(elevation = 0.5, forest = -0.3)}).}
+
+\item{covariates}{Optional data frame of sector-level covariates containing \code{tot_areas} rows.
+If omitted, any variables specified in \code{n_formula} are simulated as standard normal variates.}
+
+\item{n_cov_effect}{Optional numeric log-linear slope for a single simulated \code{habitat} covariate
+(retained for backward compatibility; equivalent to \code{n_formula = ~ habitat, n_betas = c(habitat = n_cov_effect)}).}
 }
 \value{
-A list containing \code{tot_pop} (total simulated individuals), \code{sim_pop}
-  (list of groups per sector), and \code{habitat} (simulated sector-level habitat covariate vector).
+A list containing:
+  \item{tot_pop}{Total simulated individuals (scalar).}
+  \item{sim_pop}{List of groups per sector.}
+  \item{covariates}{Data frame of sector-level covariates (one row per sector).}
+  \item{habitat}{Numeric vector of the \code{habitat} covariate (if present).}
 }
 \description{
 Simulates a population of individuals split into groups across multiple sectors.
+Supports sector-level abundance covariate modeling via \code{n_formula} and named
+coefficient vectors \code{n_betas}, or user-provided sector covariates.
 }

@@ -12,11 +12,14 @@ simulate_survey(
   obs_effect,
   detvar,
   surv_areas,
+  p_formula = NULL,
+  p_betas = NULL,
+  covariates = NULL,
   cov_effect = 0
 )
 }
 \arguments{
-\item{sim_pop}{A simulated population from \code{\link{simulate_pop}} (either the full list or \code{pop$sim_pop}).}
+\item{sim_pop}{A simulated population from \code{\link{simulate_pop}} (either the returned list or \code{pop$sim_pop}).}
 
 \item{det_p1}{Base detection probability for Observer 1.}
 
@@ -30,14 +33,21 @@ simulate_survey(
 
 \item{surv_areas}{Number of sectors to receive Double Observer surveys.}
 
-\item{cov_effect}{Optional numeric log-odds effect of a simulated standard-normal sector covariate
-(\code{covariate}) on detection probability (default \code{0}, meaning no covariate effect).}
+\item{p_formula}{Optional one-sided formula for detection probability (e.g. \code{~ effort + elevation}).}
+
+\item{p_betas}{Optional named numeric vector of logit-scale coefficients for \code{p_formula}
+(e.g., \code{c(effort = 0.6, elevation = -0.3)}).}
+
+\item{covariates}{Optional data frame of sector-level covariates. If omitted, extracted from \code{sim_pop}.}
+
+\item{cov_effect}{Optional numeric log-odds slope for a single simulated \code{covariate}
+(retained for backward compatibility; equivalent to \code{p_formula = ~ covariate, p_betas = c(covariate = cov_effect)}).}
 }
 \value{
 A data frame with one row per sector, containing observed counts,
-  Double Observer tallies, a sector detection covariate (\code{covariate}), and a sector
-  abundance covariate (\code{habitat}) ready for input to \code{\link{doas}}.
+  Double Observer tallies, and all simulated sector-level covariates ready for input to \code{\link{doas}}.
 }
 \description{
-Simulate a Survey and format for DOAS
+Simulates field observer detections across survey sectors with support for
+detection covariates modeled via \code{p_formula} and named coefficients \code{p_betas}.
 }

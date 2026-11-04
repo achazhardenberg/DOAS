@@ -16,12 +16,16 @@ doas_power(
   det_group = 0.9,
   obs_effect = 0.75,
   detvar = 0.05,
+  p_formula = NULL,
+  p_betas = NULL,
+  n_formula = NULL,
+  n_betas = NULL,
+  covariates = NULL,
   cov_effect = 0,
+  n_cov_effect = 0,
   method = c("frequentist", "bayesian"),
   obs_type = c("independent", "dependent"),
   pooling = c("hybrid", "global"),
-  p_formula = NULL,
-  n_formula = NULL,
   ci_method = c("lognormal", "bootstrap")
 )
 }
@@ -36,7 +40,7 @@ doas_power(
 
 \item{tot_areas}{Total number of survey sectors.}
 
-\item{area_sizes}{Vector of probabilities/sizes for assigning groups to sectors. If NULL, uniform probabilities are used.}
+\item{area_sizes}{Vector of probabilities/sizes for assigning groups to sectors. If NULL, uniform or covariate-driven probabilities are used.}
 
 \item{det_p1}{Base detection probability for Observer 1.}
 
@@ -48,17 +52,25 @@ doas_power(
 
 \item{detvar}{Standard deviation for detection probability across sectors.}
 
-\item{cov_effect}{Numeric log-odds effect of a simulated sector-level covariate (\code{covariate}) on detection probability (default \code{0}).}
+\item{p_formula}{Optional detection formula passed to simulation and \code{\link{doas}} (e.g., \code{~ effort + elevation}).}
+
+\item{p_betas}{Optional named numeric vector of logit coefficients for \code{p_formula} in \code{\link{simulate_survey}}.}
+
+\item{n_formula}{Optional abundance formula passed to simulation and \code{\link{doas}} (e.g., \code{~ elevation + forest}).}
+
+\item{n_betas}{Optional named numeric vector of log-linear coefficients for \code{n_formula} in \code{\link{simulate_pop}}.}
+
+\item{covariates}{Optional data frame of sector-level covariates.}
+
+\item{cov_effect}{Numeric log-odds effect of a single simulated detection covariate (\code{covariate}) (retained for backward compatibility).}
+
+\item{n_cov_effect}{Numeric log-linear effect of a single simulated abundance covariate (\code{habitat}) (retained for backward compatibility).}
 
 \item{method}{Statistical inference paradigm (\code{"frequentist"} or \code{"bayesian"}).}
 
 \item{obs_type}{Observer field protocol (\code{"independent"} or \code{"dependent"}).}
 
 \item{pooling}{Sector pooling strategy (\code{"hybrid"} or \code{"global"}).}
-
-\item{p_formula}{Optional detection formula (e.g., \code{~ covariate} or \code{~ mean_group_size}) passed to \code{\link{doas}}.}
-
-\item{n_formula}{Optional abundance formula passed to \code{\link{doas}}.}
 
 \item{ci_method}{Confidence interval method (\code{"lognormal"} or \code{"bootstrap"}).}
 }
@@ -76,4 +88,6 @@ A data frame summarizing performance metrics for each scenario in \code{surv_are
 \description{
 Runs multiple simulations to evaluate the statistical performance (bias,
 precision, coverage) of the DOAS estimator under varying sampling efforts.
+Supports multi-covariate simulation and modeling on detection (\code{p_formula}, \code{p_betas})
+and abundance (\code{n_formula}, \code{n_betas}).
 }

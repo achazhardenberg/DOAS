@@ -65,9 +65,16 @@ test_that("multiple covariates, interactions, n_formula, and predict.doas() work
         groups_obs1 = c(2, 2, 2, 2, 2, 2, NA, NA, NA, NA),
         groups_obs2 = c(2, 2, 2, 2, 2, 2, NA, NA, NA, NA),
         effort = rnorm(10),
-        ruggedness = rnorm(10)
+        ruggedness = rnorm(10),
+        habitat = factor(rep(c("Forest", "Open"), 5))
     )
     d_cov <- doas_data(cov_df)
+
+    # Categorical and interaction terms
+    fit_cat <- doas(d_cov, method = "frequentist", p_formula = ~ effort + habitat, n_formula = ~ habitat)
+    expect_s3_class(fit_cat$model, "glm")
+    expect_true("habitatOpen" %in% names(stats::coef(fit_cat$model)))
+    expect_true("habitatOpen" %in% names(stats::coef(fit_cat$n_model)))
 
     fit_f_int <- doas(d_cov, method = "frequentist", p_formula = ~ effort * ruggedness)
     expect_equal(length(stats::coef(fit_f_int$model)), 4)
