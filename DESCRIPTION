@@ -11,6 +11,8 @@ Description: Estimates wildlife population abundance in gregarious and solitary
     dependent double-observer protocols, with detection (p_formula) and abundance
     (n_formula) covariate modeling, S3 prediction, and simulation-based power analysis.
 License: GPL (>= 3)
+URL: https://achazhardenberg.github.io/DOAS/, https://github.com/achazhardenberg/DOAS
+BugReports: https://github.com/achazhardenberg/DOAS/issues
 Encoding: UTF-8
 Imports:
     stats,

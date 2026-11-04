@@ -1,0 +1,296 @@
+# DOAS: Double Observer Adjusted Survey
+
+The **DOAS** R package provides a unified Frequentist and Hierarchical
+Bayesian statistical framework to estimate wildlife population abundance
+from either **full Double Observer (DO) surveys** (100% of sectors
+surveyed by two observers) or **partial Double Observer Adjusted Surveys
+(DOAS)** that combine targeted DO surveys in a subset of sectors with
+single-observer block counts across the remaining study area.
+
+By calibrating detection probability on the Double Observer sectors—and
+optionally modeling both detection covariates (`p_formula`) and
+habitat/abundance covariates (`n_formula`)—`DOAS` corrects for imperfect
+detection ($`p < 1`$) across entire landscapes while substantially
+reducing field personnel requirements.
+
+## Installation
+
+You can install the development version of `DOAS` from GitHub using
+`devtools`:
+
+``` r
+
+# install.packages("devtools")
+devtools::install_github("achazhardenberg/DOAS", build_vignettes = TRUE)
+```
+
+## Overview of Features
+
+### 1. Flexible Data Ingestion & Validation
+
+- **[`doas_data()`](https://achazhardenberg.github.io/DOAS/reference/doas_data.md)**:
+  Validates and standardizes survey data from three field recording
+  formats into a `doas_data` object (with a dedicated
+  [`print()`](https://rdrr.io/r/base/print.html) summary):
+  - `format = "sector"`: Wide sector-level summaries (`total_count`,
+    `detected_groups`, `groups_both`, `groups_obs1`, `groups_obs2`).
+    Automatically infers `detected_groups` or `groups_both` if one is
+    omitted in DO sectors, retains all sector-level covariate columns,
+    and flags sectors with `total_count = NA` as `"Unsurveyed"` for
+    prediction via `n_formula`.
+  - `format = "group"`: Long group-level capture histories (one row per
+    detected animal group with `obs1` and `obs2` binary detection
+    indicators).
+  - `format = "sighting"`: Long observer-sighting records reconciled by
+    `group_id` and `observer`.
+
+### 2. Frequentist & Hierarchical Bayesian Abundance Estimators
+
+- **[`doas()`](https://achazhardenberg.github.io/DOAS/reference/doas.md)**:
+  Core abundance estimator supporting both full Double Observer surveys
+  and partial DOAS designs via orthogonal arguments:
+  - **`method = c("frequentist", "bayesian")`**: Choose between
+    Frequentist estimation (with analytical multivariate Delta-method or
+    non-parametric spatial block `"bootstrap"` confidence intervals) and
+    pure-R multi-chain Hierarchical Bayesian MCMC estimation (reporting
+    posterior means, 95% credible intervals, Gelman–Rubin $`\hat{R}`$,
+    and effective sample size $`n_{\text{eff}}`$).
+  - **`obs_type = c("independent", "dependent")`**: Supports both
+    simultaneous independent observers (Chapman mark–recapture with
+    symmetric observer pool efficiency $`\bar{p} = (p_1 + p_2)/2`$) and
+    dependent primary–secondary observer protocols (Zippin removal).
+  - **`pooling = c("hybrid", "global")`**: `"hybrid"` (default) retains
+    direct mark–recapture estimates inside surveyed DO sectors and
+    extrapolates only single-observer Block sectors; `"global"` applies
+    the calibrated single-observer detection rate across all surveyed
+    sectors.
+  - **`p_formula = ~ ...`**: Models sector-level variation in detection
+    probability using standard R linear model formulas (supporting
+    multiple covariates, interaction terms such as
+    `~ effort * ruggedness`, and polynomial terms).
+  - **`n_formula = ~ ...`**: Models sector-level abundance
+    ($`\log \lambda_i = \mathbf{z}_i^\top \boldsymbol{\gamma}`$) as a
+    function of environmental covariates (e.g.,
+    `~ elevation + habitat + offset(log(area))`), automatically imputing
+    any unsurveyed sectors (`total_count = NA`).
+- **[`predict.doas()`](https://achazhardenberg.github.io/DOAS/reference/predict.doas.md)**:
+  S3 [`predict()`](https://rdrr.io/r/stats/predict.html) method that
+  predicts sector abundance (`type = "abundance"`), group count
+  (`type = "groups"`), or detection probability (`type = "detection"`)
+  with standard errors and 95% confidence/credible intervals for
+  in-sample sectors or new covariate grids (`newdata`).
+- **Low-Level Building Blocks**:
+  - [`chapman_estimate()`](https://achazhardenberg.github.io/DOAS/reference/chapman_estimate.md)
+    &
+    [`chapman_variance()`](https://achazhardenberg.github.io/DOAS/reference/chapman_variance.md):
+    Bias-corrected independent double-observer estimator and
+    Seber (1982) variance.
+  - [`dependent_zippin_estimate()`](https://achazhardenberg.github.io/DOAS/reference/dependent_zippin_estimate.md)
+    &
+    [`dependent_zippin_variance()`](https://achazhardenberg.github.io/DOAS/reference/dependent_zippin_variance.md):
+    Primary–secondary observer removal estimator and variance.
+  - [`bayesian_conjugate_estimate()`](https://achazhardenberg.github.io/DOAS/reference/bayesian_conjugate_estimate.md):
+    Bound-safe multi-chain conjugate Beta–Binomial MCMC abundance
+    estimator for DO sectors.
+
+### 3. Information-Theoretic Model Selection
+
+- **[`QAIC()`](https://achazhardenberg.github.io/DOAS/reference/QAIC.md)**:
+  Computes the Quasi-Akaike Information Criterion ($`\hat{c}`$, $`K`$,
+  $`\Delta\text{QAIC}`$) to rank competing frequentist `doas` detection
+  (`p_formula`) or abundance (`n_formula`) models while accounting for
+  overdispersion.
+- **[`WAIC()`](https://achazhardenberg.github.io/DOAS/reference/WAIC.md)**:
+  Computes the Widely Applicable Information Criterion ($`\text{lppd}`$,
+  $`p_{\text{WAIC}}`$, $`\Delta\text{WAIC}`$) from the pointwise
+  posterior log-likelihood matrix of Bayesian `doas` models.
+
+### 4. Simulation & Prospective Power Analysis
+
+- **[`simulate_pop()`](https://achazhardenberg.github.io/DOAS/reference/simulate_pop.md)**:
+  Generates spatially structured animal populations partitioned into
+  groups across sectors.
+- **[`simulate_survey()`](https://achazhardenberg.github.io/DOAS/reference/simulate_survey.md)**:
+  Simulates full DO or partial DOAS surveys with group-size scaling,
+  counting error, inter-observer skill differences (`obs_effect`),
+  inter-sector heterogeneity (`detvar`), and sector covariate effects
+  (`cov_effect`).
+- **[`doas_power()`](https://achazhardenberg.github.io/DOAS/reference/doas_power.md)**:
+  Conducts Monte Carlo power and accuracy analyses across varying
+  numbers of Double Observer sectors (`surv_areas`) for any combination
+  of `method`, `obs_type`, `pooling`, `p_formula`, and `n_formula`.
+
+## Quick Start Example
+
+``` r
+
+library(DOAS)
+
+# 1. Simulate a 24-sector population (~3500 animals) with a habitat effect on abundance,
+#    and a partial DOAS survey (12 DO sectors, 12 Block sectors) with an effort effect on detection
+set.seed(12)
+pop <- simulate_pop(pop_size = 3500, mean_group = 8, tot_areas = 24, n_cov_effect = 0.5)
+raw_data <- simulate_survey(
+  sim_pop         = pop,
+  det_p1          = 0.55,
+  intra_group_det = 1.0,
+  det_group       = 0.95,
+  obs_effect      = 0.90,
+  detvar          = 0.02,
+  surv_areas      = 12,
+  cov_effect      = 1.0
+)
+
+survey_dat <- doas_data(raw_data, format = "sector")
+print(head(survey_dat))
+
+# 2. Frequentist Hybrid Estimation (Detection & Abundance Covariates)
+fit_freq_cov <- doas(
+  survey_dat,
+  method    = "frequentist",
+  obs_type  = "independent",
+  pooling   = "hybrid",
+  p_formula = ~ covariate,
+  n_formula = ~ habitat
+)
+
+fit_freq_hab <- doas(
+  survey_dat,
+  method    = "frequentist",
+  obs_type  = "independent",
+  pooling   = "hybrid",
+  p_formula = ~ habitat,
+  n_formula = ~ habitat
+)
+
+summary(fit_freq_cov)
+cat("True simulated population:", pop$tot_pop, "\n")
+QAIC(fit_freq_cov, fit_freq_hab)
+
+# Predict detection probability and expected abundance across a covariate gradient
+new_sectors <- data.frame(covariate = c(-1, 0, 1), habitat = c(-1, 0, 1))
+predict(fit_freq_cov, newdata = new_sectors, type = "detection")
+predict(fit_freq_cov, newdata = new_sectors, type = "abundance")
+
+# 3. Multi-Chain Hierarchical Bayesian Estimation & WAIC Selection
+fit_bayes_null <- doas(
+  survey_dat,
+  method   = "bayesian",
+  obs_type = "independent",
+  pooling  = "hybrid",
+  chains   = 3,
+  iter     = 2000,
+  burnin   = 500
+)
+
+fit_bayes_cov <- doas(
+  survey_dat,
+  method    = "bayesian",
+  obs_type  = "independent",
+  pooling   = "hybrid",
+  p_formula = ~ covariate,
+  n_formula = ~ habitat,
+  chains    = 3,
+  iter      = 2000,
+  burnin    = 500
+)
+
+summary(fit_bayes_cov)
+WAIC(fit_bayes_null, fit_bayes_cov)
+```
+
+## Documentation & Tutorials
+
+A step-by-step tutorial vignette covering field data preparation,
+frequentist and Bayesian estimation, covariate selection, and
+prospective power analysis is included with the package:
+
+``` r
+
+vignette("DOAS-tutorial", package = "DOAS")
+```
+
+## Citation & Methods
+
+If you use `DOAS` in your research, please cite both the R package and
+the original methodological paper introducing the Double Observer
+Adjusted Survey framework:
+
+> von Hardenberg, A. (2026). *DOAS: Double Observer Adjusted Survey
+> Framework*. R package version 0.1.0.
+> <https://github.com/achazhardenberg/DOAS>
+>
+> Panaccio, M., Brambilla, A., Bassano, B., Smith, T., & von Hardenberg,
+> A. (2024). A new double observer-based census framework to improve
+> abundance estimations in mountain ungulates and other gregarious
+> species with a reduced effort. *Ecological Solutions and Evidence*,
+> 5(4), e12405. <https://doi.org/10.1002/2688-8319.12405>
+
+# Package index
+
+## Main Estimation Workflow
+
+Top-level functions to structure field data and estimate abundance.
+
+- [`doas()`](https://achazhardenberg.github.io/DOAS/reference/doas.md) :
+  Double Observer Adjusted Survey (DOAS) Abundance Estimation
+- [`doas_data()`](https://achazhardenberg.github.io/DOAS/reference/doas_data.md)
+  : Format and Validate Survey Data for DOAS
+- [`predict(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/predict.doas.md)
+  : Predict Method for DOAS Models
+- [`summary(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/summary.doas.md)
+  : Summary for doas objects
+- [`print(`*`<doas_data>`*`)`](https://achazhardenberg.github.io/DOAS/reference/print.doas_data.md)
+  : Print Method for Validated DOAS Survey Data
+
+## Simulation & Power Analysis
+
+Tools to simulate cluster-sampled populations, survey protocols, and run
+power analyses.
+
+- [`simulate_pop()`](https://achazhardenberg.github.io/DOAS/reference/simulate_pop.md)
+  : Simulate a Population
+- [`simulate_survey()`](https://achazhardenberg.github.io/DOAS/reference/simulate_survey.md)
+  : Simulate a Survey and format for DOAS
+- [`doas_power()`](https://achazhardenberg.github.io/DOAS/reference/doas_power.md)
+  : DOAS Power Analysis
+
+## Model Selection
+
+Information criteria for frequentist and Bayesian models.
+
+- [`QAIC()`](https://achazhardenberg.github.io/DOAS/reference/QAIC.md) :
+  Quasi-Akaike Information Criterion (QAIC)
+- [`QAIC(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/QAIC.doas.md)
+  : QAIC Method for Frequentist DOAS Models
+- [`WAIC()`](https://achazhardenberg.github.io/DOAS/reference/WAIC.md) :
+  Widely Applicable Information Criterion (WAIC)
+- [`WAIC(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/WAIC.doas.md)
+  : WAIC Method for Bayesian DOAS Models
+
+## Base Estimators
+
+Underlying mathematical estimators for mark-recapture and removal
+setups.
+
+- [`chapman_estimate()`](https://achazhardenberg.github.io/DOAS/reference/chapman_estimate.md)
+  : Calculate Chapman-adjusted Lincoln-Petersen estimate
+- [`chapman_variance()`](https://achazhardenberg.github.io/DOAS/reference/chapman_variance.md)
+  : Calculate Variance of the Chapman estimator
+- [`dependent_zippin_estimate()`](https://achazhardenberg.github.io/DOAS/reference/dependent_zippin_estimate.md)
+  : Calculate Dependent Double Observer (Zippin) Estimate
+- [`dependent_zippin_variance()`](https://achazhardenberg.github.io/DOAS/reference/dependent_zippin_variance.md)
+  : Calculate Variance of the Dependent Double Observer (Zippin)
+  estimator
+- [`bayesian_conjugate_estimate()`](https://achazhardenberg.github.io/DOAS/reference/bayesian_conjugate_estimate.md)
+  : Calculate Bayesian Multi-Chain MCMC Double Observer Estimate
+
+# Articles
+
+### User Guide & Tutorials
+
+Step-by-step walkthroughs for field surveys, covariate modeling, and
+simulation
+
+- [DOAS Tutorial: Analyzing Real Survey Data and Running
+  Simulations](https://achazhardenberg.github.io/DOAS/articles/DOAS-tutorial.md):

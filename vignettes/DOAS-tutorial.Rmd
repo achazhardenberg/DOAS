@@ -208,6 +208,93 @@ summary(mod_bayes_cov)
 WAIC(mod_bayes_null, mod_bayes_cov)
 ```
 
+### Accounting for Sampling Effort, Transect Length, and Area Offsets (`offset()`)
+
+In field surveys with transects or management sectors of unequal size (e.g. transects of different lengths or sectors with different surface areas), longer transects or larger sectors naturally intercept more animals simply because **more area was sampled**.
+
+In `DOAS`, you can model this directly by including an `offset()` in `n_formula`:
+$$\log(\lambda_j) = \log(\text{effort}_j) + \beta_0 + \beta_1 \cdot \text{habitat}_j$$
+
+The `offset()` fixes the coefficient to exactly $1.0$ on the log scale, meaning that expected abundance scales proportionally with sampling effort, and the remaining regression coefficients represent **density per unit effort or area**.
+
+> **Note on Detection vs. Abundance:**
+> - If transect length or sector size alters the **number of animals present in the sampled unit**, put `offset(log(transect_length))` in `n_formula`.
+> - If transect length or survey duration alters **how well observers spot animals** (e.g. observer fatigue on long walks or search speed), include it as an unconstrained covariate in `p_formula = ~ fatigue`.
+> - `offset()` is fully supported in **both frequentist and Bayesian models** (as well as in `predict.doas()`!).
+
+```{r transect-offset-example}
+# Survey across 8 transects of variable length with categorical habitat
+transect_data <- data.frame(
+  sector_id       = paste0("Transect_", 1:8),
+  total_count     = c(48, 22, 65, 80, 18, 30, 42, 55),
+  groups_both     = c(5, 3, 8, 7, NA, NA, NA, NA),
+  groups_obs1     = c(2, 1, 2, 2, NA, NA, NA, NA),
+  groups_obs2     = c(1, 1, 1, 1, NA, NA, NA, NA),
+  detected_groups = c(8, 5, 11, 10, 3, 4, 6, 8),
+  transect_length = c(5.0, 2.5, 7.2, 6.8, 2.0, 3.5, 4.5, 5.5), # km
+  habitat         = factor(rep(c("Forest", "Open"), 4)),
+  fatigue         = c(0.8, -0.4, 1.2, 0.9, -0.8, -0.2, 0.3, 0.7)
+)
+
+d_tr <- doas_data(transect_data, format = "sector")
+
+# Frequentist DOAS with detection covariate and abundance offset
+fit_offset_freq <- doas(
+  d_tr,
+  method    = "frequentist",
+  p_formula = ~ fatigue,
+  n_formula = ~ offset(log(transect_length)) + habitat
+)
+
+# Bayesian DOAS with detection covariate and abundance offset
+fit_offset_bayes <- doas(
+  d_tr,
+  method    = "bayesian",
+  p_formula = ~ fatigue,
+  n_formula = ~ offset(log(transect_length)) + habitat,
+  chains    = 2,
+  iter      = 500,
+  burnin    = 100
+)
+
+summary(fit_offset_freq)
+summary(fit_offset_bayes)
+
+# Predict expected abundance for a new 10 km transect in Forest vs Open habitat
+new_transects <- data.frame(
+  transect_length = c(10, 10),
+  habitat = factor(c("Forest", "Open"), levels = c("Forest", "Open")),
+  fatigue = c(0, 0)
+)
+predict(fit_offset_freq, newdata = new_transects, type = "abundance")
+predict(fit_offset_bayes, newdata = new_transects, type = "abundance")
+```
+
+### Imputing Completely Unsurveyed Sectors
+
+Occasionally, severe weather, inaccessible terrain, or logistical constraints prevent some sectors or transects from being surveyed at all (`total_count = NA`).
+
+If you provide an abundance model via `n_formula`, `doas()` automatically imputes abundance and standard errors for unsurveyed sectors using the fitted habitat response curve and propagates this uncertainty into the total population estimate:
+
+```{r unsurveyed-sectors-example}
+# Transect 8 could not be surveyed due to weather
+unsurveyed_sheet <- transect_data
+unsurveyed_sheet$total_count[8] <- NA
+unsurveyed_sheet$detected_groups[8] <- NA
+
+d_unsurveyed <- doas_data(unsurveyed_sheet, format = "sector")
+print(d_unsurveyed)
+
+# Fit DOAS: n_formula imputes Transect 8 based on habitat and transect length
+fit_imputed <- doas(
+  d_unsurveyed,
+  n_formula = ~ offset(log(transect_length)) + habitat
+)
+
+# Check sector-level estimates: Transect 8 is imputed with appropriate SE and 95% CI
+fit_imputed$sector_estimates[8, ]
+```
+
 ---
 
 ## 3. Simulating Populations and Surveys
@@ -216,50 +303,54 @@ To test the method or plan study designs, the DOAS package includes functions to
 
 ### Simulating a Population (`simulate_pop`)
 
-`simulate_pop()` distributes a simulated population into logical sectors and groups.
+`simulate_pop()` distributes a simulated population into logical sectors and groups. You can optionally model true sector abundance as a function of environmental covariates via `n_formula` and a named vector of log-linear slopes `n_betas`:
 
 ```{r sim_pop}
 set.seed(42)
-# Simulate ~1000 individuals, mean group size 10, spread across 15 sectors
+# Simulate ~1000 individuals across 15 sectors, with abundance driven by elevation
 simulated_population <- simulate_pop(
-  pop_size = 1000,
+  pop_size   = 1000,
   mean_group = 10,
-  tot_areas = 15
+  tot_areas  = 15,
+  n_formula  = ~ elevation,
+  n_betas    = c(elevation = 0.5)
 )
 
-# Total simulated individuals
+# Total simulated individuals and generated sector covariates
 simulated_population$tot_pop
+head(simulated_population$covariates)
 ```
 
 ### Simulating a DOAS Survey (`simulate_survey`)
 
-`simulate_survey()` takes the "true" population and applies detection probabilities to mimic field data collection, including an optional sector-level covariate effect (`cov_effect`).
+`simulate_survey()` takes the simulated population and applies detection probabilities to mimic field data collection. You can also specify detection covariates via `p_formula` and `p_betas` (which can reuse covariates from the population like `elevation` and/or introduce new survey-specific covariates like `effort`):
 
 ```{r sim_survey}
 # Simulate field observers surveying the population
 survey_data <- simulate_survey(
-  sim_pop = simulated_population$sim_pop,
-  det_p1 = 0.6, # Observer 1 spots ~60% of groups
-  intra_group_det = 1.0, # Observers count individuals within groups correctly
-  det_group = 0.9, # Group size has minor influence on detectability
-  obs_effect = 0.75, # Observer 2 is 75% as effective as Observer 1
-  detvar = 0.05, # Small variance in detection probability across sectors
-  surv_areas = 5, # Out of 15 areas, 5 will get Double Observers
-  cov_effect = 0.4 # Log-odds slope of the sector 'covariate' on detection
+  sim_pop         = simulated_population,
+  det_p1          = 0.6,  # Baseline detection probability (~60%)
+  intra_group_det = 1.0,  # Observers count individuals within groups accurately
+  det_group       = 0.9,  # Group size scaling factor
+  obs_effect      = 0.75, # Observer 2 relative efficiency
+  detvar          = 0.05, # Inter-sector detection variance
+  surv_areas      = 5,    # 5 DO sectors, 10 Block sectors
+  p_formula       = ~ elevation + effort,
+  p_betas         = c(elevation = -0.3, effort = 0.6)
 )
 
 head(survey_data)
 ```
 
-This output is automatically formatted and ready to be plugged into `doas()`!
+This output is automatically formatted and ready to be plugged into `doas()` with matching covariate formulas:
 
 ```{r run-sim-doas}
-# We use 'global' pooling to pool detection probabilities across sectors
+# Fit Frequentist DOAS with detection and abundance formulas
 sim_results <- doas(
   survey_data,
-  method = "frequentist",
-  obs_type = "independent",
-  pooling = "global"
+  method    = "frequentist",
+  p_formula = ~ elevation + effort,
+  n_formula = ~ elevation
 )
 summary(sim_results)
 ```

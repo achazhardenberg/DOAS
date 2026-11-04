@@ -1,0 +1,52 @@
+url: https://achazhardenberg.github.io/DOAS/
+template:
+  bootstrap: 5
+  light-switch: true
+  bslib:
+    primary: "#1b4965"
+    navbar-bg: "#1b4965"
+
+navbar:
+  structure:
+    left: [home, reference, articles]
+    right: [search, github]
+
+articles:
+  - title: "User Guide & Tutorials"
+    desc: "Step-by-step walkthroughs for field surveys, covariate modeling, and simulation"
+    contents:
+      - '`DOAS-tutorial`'
+
+reference:
+  - title: "Main Estimation Workflow"
+    desc: "Top-level functions to structure field data and estimate abundance."
+    contents:
+      - doas
+      - doas_data
+      - predict.doas
+      - summary.doas
+      - print.doas_data
+
+  - title: "Simulation & Power Analysis"
+    desc: "Tools to simulate cluster-sampled populations, survey protocols, and run power analyses."
+    contents:
+      - simulate_pop
+      - simulate_survey
+      - doas_power
+
+  - title: "Model Selection"
+    desc: "Information criteria for frequentist and Bayesian models."
+    contents:
+      - QAIC
+      - QAIC.doas
+      - WAIC
+      - WAIC.doas
+
+  - title: "Base Estimators"
+    desc: "Underlying mathematical estimators for mark-recapture and removal setups."
+    contents:
+      - chapman_estimate
+      - chapman_variance
+      - dependent_zippin_estimate
+      - dependent_zippin_variance
+      - bayesian_conjugate_estimate

@@ -1,4 +1,5 @@
 ^doc$
+^docs$
 ^Meta$
 ^.*\.Rproj$
 ^\.Rproj\.user$
@@ -9,3 +10,5 @@
 ^method_comparison\.png$
 ^\.RData$
 ^\.Rhistory$
+^_pkgdown\.yml$
+^\.github$
