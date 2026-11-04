@@ -1,7 +1,8 @@
 #' Quasi-Akaike Information Criterion (QAIC)
 #'
 #' Computes the Quasi-Akaike Information Criterion (QAIC) for frequentist statistical
-#' models that handle overdispersion (such as quasi-binomial GLM covariate models in \code{\link{doas}}).
+#' models that handle overdispersion (such as quasi-binomial detection GLM models via \code{p_formula}
+#' or quasi-poisson abundance GLM models via \code{n_formula} in \code{\link{doas}}).
 #' For Bayesian MCMC models (\code{method = "bayesian"}), use \code{\link{WAIC}} instead.
 #'
 #' @param object A fitted model object (e.g., a frequentist `doas` model).
@@ -15,25 +16,43 @@ QAIC <- function(object, ...) {
 
 #' QAIC Method for Frequentist DOAS Models
 #'
-#' Extracts the QAIC for frequentist DOAS models that used a covariate formula.
-#' Standard AIC is undefined for the quasi-binomial GLM used under the hood,
-#' so QAIC penalizes the binomial likelihood by the estimated overdispersion
-#' parameter (\eqn{\hat{c}}).
+#' Extracts the QAIC for frequentist DOAS models that used a detection covariate formula
+#' (\code{p_formula}) or an abundance covariate formula (\code{n_formula}).
+#' Standard AIC is undefined for quasi-likelihood GLMs, so QAIC penalizes the
+#' log-likelihood by the estimated overdispersion parameter (\eqn{\hat{c}}).
 #'
 #' @param object A fitted `doas` object with \code{method = "frequentist"}.
 #' @param ... Optionally more fitted `doas` objects.
 #'
 #' @return A numeric QAIC value, or a data frame if multiple models are passed.
-#' @importFrom stats dbinom coef
+#' @importFrom stats dbinom dpois coef
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' mod1 <- doas(data, method = "frequentist", formula = ~ effort)
-#' mod2 <- doas(data, method = "frequentist", formula = ~ effort + habitat)
+#' mod1 <- doas(data, method = "frequentist", p_formula = ~ effort)
+#' mod2 <- doas(data, method = "frequentist", p_formula = ~ effort + habitat)
 #' QAIC(mod1, mod2)
 #' }
 QAIC.doas <- function(object, ...) {
+    mods <- list(object, ...)
+
+    # Determine whether we are comparing abundance (n_formula) or detection (p_formula) submodels
+    has_n <- vapply(
+        mods,
+        function(m) inherits(m, "doas") && !is.null(m$n_formula),
+        logical(1)
+    )
+    has_p <- vapply(
+        mods,
+        function(m) inherits(m, "doas") && !is.null(m$p_formula),
+        logical(1)
+    )
+    use_n_submodel <- all(has_n) && (
+        !any(has_p) ||
+            length(unique(vapply(mods, function(m) paste(deparse(m$p_formula), collapse = " "), character(1)))) == 1
+    )
+
     get_qaic <- function(mod) {
         if (!inherits(mod, "doas")) {
             return(NA_real_)
@@ -43,26 +62,34 @@ QAIC.doas <- function(object, ...) {
                 "QAIC is intended for frequentist GLM models. For Bayesian MCMC models (method = 'bayesian'), use WAIC() instead."
             )
         }
-        if (is.null(mod$formula)) {
-            warning(
-                "DOAS model did not use a covariate formula. QAIC is undefined."
-            )
-            return(NA_real_)
+        if (use_n_submodel) {
+            glm_mod <- mod$n_model
+            y <- round(glm_mod$y)
+            mu <- pmax(1e-6, glm_mod$fitted.values)
+            log_L <- sum(stats::dpois(y, lambda = mu, log = TRUE))
+            c_hat <- summary(glm_mod)$dispersion
+            K <- length(stats::coef(glm_mod))
+            qaic_val <- -2 * (log_L / c_hat) + 2 * K
+        } else {
+            if (is.null(mod$p_formula)) {
+                warning(
+                    "DOAS model did not use a covariate formula (p_formula or n_formula). QAIC is undefined."
+                )
+                return(NA_real_)
+            }
+            glm_mod <- mod$p_model
+            y <- glm_mod$y
+            mu <- glm_mod$fitted.values
+            wt <- glm_mod$prior.weights
+            log_L <- sum(ifelse(
+                wt > 0,
+                wt * log(stats::dbinom(round(y * wt), round(wt), mu)),
+                0
+            ))
+            c_hat <- summary(glm_mod)$dispersion
+            K <- length(stats::coef(glm_mod))
+            qaic_val <- -2 * (log_L / c_hat) + 2 * K
         }
-
-        glm_mod <- mod$model
-        y <- glm_mod$y
-        mu <- glm_mod$fitted.values
-        wt <- glm_mod$prior.weights
-        log_L <- sum(ifelse(
-            wt > 0,
-            wt * log(stats::dbinom(round(y * wt), round(wt), mu)),
-            0
-        ))
-
-        c_hat <- summary(glm_mod)$dispersion
-        K <- length(stats::coef(glm_mod))
-        qaic_val <- -2 * (log_L / c_hat) + 2 * K
 
         if (is.nan(qaic_val) || is.na(qaic_val)) {
             warning(
@@ -74,7 +101,6 @@ QAIC.doas <- function(object, ...) {
         qaic_val
     }
 
-    mods <- list(object, ...)
     qaic_vals <- vapply(mods, get_qaic, FUN.VALUE = numeric(1))
 
     if (length(mods) == 1) {
@@ -86,8 +112,12 @@ QAIC.doas <- function(object, ...) {
         df = vapply(
             mods,
             function(m) {
-                if (inherits(m, "doas") && !is.null(m$formula)) {
-                    length(stats::coef(m$model))
+                if (!inherits(m, "doas")) {
+                    NA_real_
+                } else if (use_n_submodel && !is.null(m$n_model)) {
+                    length(stats::coef(m$n_model))
+                } else if (!is.null(m$p_model)) {
+                    length(stats::coef(m$p_model))
                 } else {
                     NA_real_
                 }
@@ -106,7 +136,8 @@ QAIC.doas <- function(object, ...) {
 #' Computes the Watanabe-Akaike (Widely Applicable) Information Criterion (WAIC;
 #' Watanabe 2010; Gelman, Hwang & Vehtari 2014) from the full pointwise posterior
 #' log-likelihood draws of Bayesian MCMC \code{\link{doas}} models (\code{method = "bayesian"}).
-#' Can compare both covariate models (\code{formula = ~ ...}) and the null model (\code{formula = NULL}).
+#' Can compare both detection covariate models (\code{p_formula = ~ ...}), abundance
+#' covariate models (\code{n_formula = ~ ...}), and the null model.
 #'
 #' @param object A fitted Bayesian `doas` model object (\code{method = "bayesian"}).
 #' @param ... Optionally more fitted Bayesian `doas` model objects for model comparison.
@@ -124,8 +155,7 @@ WAIC <- function(object, ...) {
 #'
 #' Evaluates the log pointwise predictive density (\code{lppd}) and the effective
 #' number of parameters (\code{p_WAIC}, computed via the posterior variance of the
-#' pointwise log-likelihood across MCMC draws as recommended by Gelman et al. 2014)
-#' across Double Observer sectors.
+#' pointwise log-likelihood across MCMC draws as recommended by Gelman et al. 2014).
 #'
 #' @param object A fitted `doas` object with \code{method = "bayesian"}.
 #' @param ... Optionally more fitted Bayesian `doas` objects.
@@ -137,10 +167,26 @@ WAIC <- function(object, ...) {
 #' @examples
 #' \dontrun{
 #' mod_null   <- doas(data, method = "bayesian")
-#' mod_effort <- doas(data, method = "bayesian", formula = ~ effort)
+#' mod_effort <- doas(data, method = "bayesian", p_formula = ~ effort)
 #' WAIC(mod_null, mod_effort)
 #' }
 WAIC.doas <- function(object, ...) {
+    mods <- list(object, ...)
+    has_n <- vapply(
+        mods,
+        function(m) inherits(m, "doas") && !is.null(m$n_log_lik),
+        logical(1)
+    )
+    has_p <- vapply(
+        mods,
+        function(m) inherits(m, "doas") && !is.null(m$p_formula),
+        logical(1)
+    )
+    use_n_submodel <- all(has_n) && (
+        !any(has_p) ||
+            length(unique(vapply(mods, function(m) paste(deparse(m$p_formula), collapse = " "), character(1)))) == 1
+    )
+
     compute_single_waic <- function(mod) {
         if (!inherits(mod, "doas")) {
             return(c(lppd = NA_real_, p_WAIC = NA_real_, WAIC = NA_real_, SE = NA_real_))
@@ -152,7 +198,11 @@ WAIC.doas <- function(object, ...) {
             return(c(lppd = NA_real_, p_WAIC = NA_real_, WAIC = NA_real_, SE = NA_real_))
         }
 
-        ll_mat <- mod$log_lik
+        ll_mat <- if (use_n_submodel && !is.null(mod$n_log_lik)) {
+            mod$n_log_lik
+        } else {
+            mod$log_lik
+        }
         n_obs <- nrow(ll_mat)
 
         lppd_i <- numeric(n_obs)
@@ -174,7 +224,6 @@ WAIC.doas <- function(object, ...) {
         c(lppd = lppd_tot, p_WAIC = p_waic_tot, WAIC = waic_tot, SE = se_waic)
     }
 
-    mods <- list(object, ...)
     mat <- vapply(mods, compute_single_waic, FUN.VALUE = numeric(4))
 
     if (length(mods) == 1) {

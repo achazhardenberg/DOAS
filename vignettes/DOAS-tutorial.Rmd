@@ -20,7 +20,7 @@ The **Double Observer Adjusted Survey (DOAS)** framework reduces the effort requ
 
 This tutorial covers the complete workflow of the `DOAS` package. You will learn how to:
 1. **Analyze real survey data** using the `doas()` function.
-2. **Model covariates on detection probability** using `formula` and compare models with `QAIC()`.
+2. **Model covariates on detection probability (`p_formula`) and abundance (`n_formula`)**, predict onto new data with `predict()`, and compare models with `QAIC()` / `WAIC()`.
 3. **Simulate animal populations and surveys** using `simulate_pop()` and `simulate_survey()`.
 4. **Run power analyses** using `doas_power()` to plan your field sampling efforts.
 5. **Understand the underlying base estimators**.
@@ -125,21 +125,25 @@ knitr::kable(results$sector_estimates, digits = 2)
 
 ---
 
-## 2. Modeling Covariates on Detection Probability (`formula` & `QAIC`)
+## 2. Modeling Covariates on Detection (`p_formula`) and Abundance (`n_formula`)
 
-If detection probability varies across sectors due to survey effort, visibility, habitat, or mean group size (`mean_group_size`, which is computed automatically inside `doas()`), you can pass a one-sided R formula to `formula`:
+If detection probability varies across sectors due to survey effort, visibility, habitat, or mean group size (`mean_group_size`, which is computed automatically inside `doas()`), you can pass a one-sided R formula to `p_formula`. You can also model sector-level abundance as a function of habitat covariates via `n_formula` and generate predictions with `predict()`:
 
-- **Frequentist (`method = "frequentist"`):** Fits a quasi-binomial logistic regression (`p_hat ~ covariates`, weighted by `G_est`) on the DO sectors and propagates the full multivariate Delta-method covariance across extrapolated sectors. Competing covariate models can be compared using `QAIC()`.
-- **Bayesian (`method = "bayesian"`):** Runs a multi-chain Metropolis-within-Gibbs logistic regression coupled to the posterior draws of latent group abundance $G_i$, reporting posterior means, standard deviations, 95% credible intervals, $\hat{R}$, and ESS for every regression coefficient.
+- **Frequentist (`method = "frequentist"`):** Fits a quasi-binomial logistic regression (`p_hat ~ covariates`, weighted by `G_est`) on the DO sectors (`p_formula`) and/or a quasi-Poisson log-link regression on detection-adjusted abundance (`n_formula`). Competing models can be compared using `QAIC()`.
+- **Bayesian (`method = "bayesian"`):** Runs a multi-chain Metropolis-within-Gibbs regression coupled to the posterior draws of latent group abundance $G_i$, reporting posterior means, standard deviations, 95% credible intervals, $\hat{R}$, and ESS for every regression coefficient.
 
 ```{r run-covariates}
-# Frequentist covariate model with survey effort
-mod_effort <- doas(my_survey_data, method = "frequentist", formula = ~effort)
-mod_group <- doas(my_survey_data, method = "frequentist", formula = ~mean_group_size)
+# Frequentist detection covariate model with survey effort and abundance covariate model
+mod_effort <- doas(my_survey_data, method = "frequentist", p_formula = ~effort, n_formula = ~habitat)
+mod_group <- doas(my_survey_data, method = "frequentist", p_formula = ~mean_group_size)
 
 summary(mod_effort)
 
-# Compare competing covariate models using Quasi-AIC (QAIC)
+# Predict detection probability or expected abundance for new sectors
+predict(mod_effort, newdata = data.frame(effort = c(5, 10), habitat = c("Forest", "Open")), type = "detection")
+predict(mod_effort, newdata = data.frame(effort = c(5, 10), habitat = c("Forest", "Open")), type = "abundance")
+
+# Compare competing detection covariate models using Quasi-AIC (QAIC)
 QAIC(mod_effort, mod_group)
 ```
 
@@ -159,7 +163,7 @@ mod_bayes_cov <- doas(
   my_survey_data,
   method = "bayesian",
   obs_type = "independent",
-  formula = ~effort,
+  p_formula = ~effort,
   chains = 4,
   iter = 1000
 )

@@ -9,7 +9,8 @@ doas(
   method = c("frequentist", "bayesian"),
   obs_type = c("independent", "dependent"),
   pooling = c("hybrid", "global"),
-  formula = NULL,
+  p_formula = NULL,
+  n_formula = NULL,
   ci_method = c("lognormal", "bootstrap"),
   R = 1000,
   chains = 4,
@@ -18,18 +19,12 @@ doas(
 )
 }
 \arguments{
-\item{data}{A dataframe containing survey data. Each row should represent a sector.
-  Required columns:
-  - \code{sector_id}: Unique identifier for the sector.
-  - \code{total_count}: Total individuals counted across all groups in the sector.
-  - \code{detected_groups}: Total groups detected in the sector (for Block sectors this is the final group count; for DO sectors it can be B + S1 + S2 or supplied).
-
-  Optional/Conditional columns for Double Observer (DO) sectors:
-  - \code{groups_both}: Number of groups seen by both observers.
-  - \code{groups_obs1}: Number of groups seen by Observer 1 only.
-  - \code{groups_obs2}: Number of groups seen by Observer 2 only.
-  If \code{groups_both}, \code{groups_obs1}, and \code{groups_obs2} are present and non-NA for a row, it is treated as a DO survey.
-  Otherwise it defaults to a standard Block count.}
+\item{data}{A dataframe or \code{\link{doas_data}} object containing survey data.
+Each row represents a sector:
+- \code{sector_id}: Unique identifier for the sector.
+- \code{total_count}: Total individuals counted across all groups in the sector (\code{NA} if unsurveyed).
+- \code{detected_groups}: Total groups detected in the sector.
+- \code{groups_both}, \code{groups_obs1}, \code{groups_obs2}: Double Observer group counts (non-NA for DO sectors, \code{NA} for Block/Unsurveyed sectors).}
 
 \item{method}{Character string specifying the statistical inference paradigm:
 - \code{"frequentist"} (default): Uses analytic Chapman (when \code{obs_type = "independent"}) or Zippin removal (when \code{obs_type = "dependent"}) estimators and Delta-method variance.
@@ -40,12 +35,17 @@ doas(
 - \code{"dependent"}: Primary observer calls out detected groups and Secondary observer records only missed groups (2-pass removal / Zippin geometry).}
 
 \item{pooling}{Character string specifying how DO sector estimates are combined with Block sectors:
-- \code{"hybrid"} (default): Uses sector-specific DO estimates for DO sectors and extrapolates only Block sectors using the pooled/modeled primary detection probability.
-- \code{"global"}: Extrapolates all sectors using the pooled or covariate-modeled primary detection probability.}
+- \code{"hybrid"} (default): Uses sector-specific DO estimates for DO sectors and extrapolates only Block sectors using the pooled/modeled detection probability.
+- \code{"global"}: Extrapolates all surveyed sectors using the pooled or covariate-modeled detection probability.}
 
-\item{formula}{Optional formula (e.g., \code{~ covariate1 + covariate2}) to model detection probability
+\item{p_formula}{Optional one-sided formula (e.g., \code{~ effort * ruggedness}) to model detection probability
 \eqn{\hat{p}} across sectors. For \code{method = "frequentist"}, fits a quasi-binomial GLM; for
 \code{method = "bayesian"}, runs a coupled multi-chain Bayesian logistic regression via MCMC.}
+
+\item{n_formula}{Optional one-sided formula (e.g., \code{~ elevation + habitat + offset(log(area))}) to model
+sector-level abundance \eqn{\lambda_i} as a function of environmental covariates (Quasi-Poisson log-link GLM in
+frequentist mode; Bayesian Poisson log-linear regression in Bayesian mode). Enables \code{\link{predict.doas}}
+for new/unsurveyed sectors and habitat response curves.}
 
 \item{ci_method}{Character string specifying how to calculate Confidence/Credible Intervals:
 - \code{"lognormal"} (default): Uses the analytic Chao (1987) log-normal approximation for frequentist estimators, or direct posterior credible intervals from the MCMC draws when \code{method = "bayesian"}.
@@ -60,11 +60,13 @@ doas(
 \item{burnin}{Integer number of warm-up/burn-in iterations per chain when \code{method = "bayesian"} (default \code{floor(iter / 4)}).}
 }
 \value{
-A list of class `doas` containing the estimate, confidence/credible intervals, sector-level estimates, and (when Bayesian) MCMC convergence diagnostics.
+A list of class `doas` containing the estimate, confidence/credible intervals, sector-level estimates, fitted submodels, and (when Bayesian) MCMC convergence diagnostics.
 }
 \description{
-Estimates total population abundance using a combination of block counts
-in all sectors and Double Observer (DO) surveys in a subset of sectors.
+Estimates total population abundance using either a full Double Observer (DO)
+survey across all sectors or a partial Double Observer Adjusted Survey (DOAS)
+combining DO surveys in a subset of sectors with single-observer block counts
+(and optionally unsurveyed sectors imputed via \code{n_formula}).
 Supports both Frequentist and multi-chain Bayesian MCMC inference across
 independent (Lincoln-Petersen/Chapman) and dependent (2-pass removal/Zippin)
 double-observer field protocols.

@@ -17,13 +17,12 @@ A numeric WAIC value (for a single model) or a comparison data frame (for multip
 \description{
 Evaluates the log pointwise predictive density (\code{lppd}) and the effective
 number of parameters (\code{p_WAIC}, computed via the posterior variance of the
-pointwise log-likelihood across MCMC draws as recommended by Gelman et al. 2014)
-across Double Observer sectors.
+pointwise log-likelihood across MCMC draws as recommended by Gelman et al. 2014).
 }
 \examples{
 \dontrun{
 mod_null   <- doas(data, method = "bayesian")
-mod_effort <- doas(data, method = "bayesian", formula = ~ effort)
+mod_effort <- doas(data, method = "bayesian", p_formula = ~ effort)
 WAIC(mod_null, mod_effort)
 }
 }

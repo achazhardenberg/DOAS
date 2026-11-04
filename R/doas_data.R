@@ -178,6 +178,9 @@ format_sector_wide <- function(
         !is.na(obs1_vec) & !is.na(obs2_vec) & (!is.na(both_vec) | !is.na(det_vec))
     }
 
+    tot_cnt <- as.numeric(data[[count]])
+    is_unsurv <- !is_do & is.na(tot_cnt)
+
     for (i in seq_len(n_sec)) {
         if (is_do[i]) {
             if (is.na(obs1_vec[i]) || is.na(obs2_vec[i])) {
@@ -214,6 +217,11 @@ format_sector_wide <- function(
                     as.character(data[[sector]][i])
                 ))
             }
+        } else if (is_unsurv[i]) {
+            det_vec[i] <- NA_real_
+            both_vec[i] <- NA_real_
+            obs1_vec[i] <- NA_real_
+            obs2_vec[i] <- NA_real_
         } else {
             if (is.na(det_vec[i])) {
                 stop(sprintf(
@@ -227,18 +235,45 @@ format_sector_wide <- function(
         }
     }
 
-    tot_cnt <- as.numeric(data[[count]])
+    surv_type <- ifelse(is_do, "DO", ifelse(is_unsurv, "Unsurveyed", "Block"))
     out <- data.frame(
         sector_id = data[[sector]],
-        survey_type = ifelse(is_do, "DO", "Block"),
+        survey_type = surv_type,
         total_count = tot_cnt,
         detected_groups = det_vec,
         groups_both = both_vec,
         groups_obs1 = obs1_vec,
         groups_obs2 = obs2_vec,
-        mean_group_size = ifelse(det_vec > 0, tot_cnt / det_vec, 0),
+        mean_group_size = ifelse(
+            is_unsurv,
+            NA_real_,
+            ifelse(!is.na(det_vec) & det_vec > 0, tot_cnt / det_vec, 0)
+        ),
         stringsAsFactors = FALSE
     )
+
+    if (is.null(covariates)) {
+        core_cols <- c(
+            sector,
+            count,
+            groups,
+            both,
+            obs1,
+            obs2,
+            "sector_id",
+            "survey_type",
+            "total_count",
+            "detected_groups",
+            "groups_both",
+            "groups_obs1",
+            "groups_obs2",
+            "mean_group_size"
+        )
+        extra_cols <- setdiff(names(data), core_cols)
+        if (length(extra_cols) > 0) {
+            covariates <- extra_cols
+        }
+    }
 
     if (!is.null(covariates)) {
         for (cov_col in covariates) {

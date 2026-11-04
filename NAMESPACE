@@ -2,6 +2,7 @@
 
 S3method(QAIC,doas)
 S3method(WAIC,doas)
+S3method(predict,doas)
 S3method(print,doas_data)
 S3method(summary,doas)
 export(QAIC)
@@ -23,15 +24,20 @@ importFrom(stats,
   dbinom,
   delete.response,
   dnorm,
+  dpois,
   glm,
   median,
+  model.frame,
   model.matrix,
+  model.offset,
   na.omit,
   plogis,
   predict,
   qlogis,
+  qnorm,
   quantile,
   quasibinomial,
+  quasipoisson,
   rbeta,
   rnbinom,
   rnorm,

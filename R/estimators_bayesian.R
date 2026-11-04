@@ -557,6 +557,151 @@ fit_bayesian_covariate_mcmc <- function(
     )
 }
 
+#' Fit Multi-Chain Bayesian Log-Linear Regression for Sector Abundance Covariates (n_formula)
+#'
+#' @importFrom stats model.matrix model.frame model.offset delete.response terms coef vcov rnorm dnorm dpois runif quantile sd update quasipoisson glm
+#' @keywords internal
+#' @noRd
+fit_bayesian_abundance_mcmc <- function(
+    n_formula,
+    surv_data,
+    all_data,
+    N_surv_draws_list,
+    n_glm_mod,
+    prior_sd = 2.5
+) {
+    rhs_terms <- stats::delete.response(stats::terms(n_glm_mod))
+    mf_surv <- stats::model.frame(rhs_terms, data = surv_data, xlev = n_glm_mod$xlevels)
+    Z_surv <- stats::model.matrix(rhs_terms, data = mf_surv)
+    off_surv <- stats::model.offset(mf_surv)
+    if (is.null(off_surv)) off_surv <- rep(0, nrow(Z_surv))
+
+    mf_all <- stats::model.frame(rhs_terms, data = all_data, xlev = n_glm_mod$xlevels)
+    Z_all <- stats::model.matrix(rhs_terms, data = mf_all)
+    off_all <- stats::model.offset(mf_all)
+    if (is.null(off_all)) off_all <- rep(0, nrow(Z_all))
+
+    n_params <- ncol(Z_surv)
+    n_surv <- nrow(Z_surv)
+    n_all <- nrow(Z_all)
+    n_keep <- nrow(N_surv_draws_list[[1]])
+    chains <- ncol(N_surv_draws_list[[1]])
+
+    gamma_init <- stats::coef(n_glm_mod)
+    gamma_init[is.na(gamma_init)] <- 0
+
+    cov_init <- tryCatch(
+        stats::vcov(n_glm_mod),
+        error = function(e) diag(0.1, n_params)
+    )
+    if (
+        any(is.na(cov_init)) ||
+            any(is.nan(cov_init)) ||
+            nrow(cov_init) != n_params
+    ) {
+        cov_init <- diag(0.1, n_params)
+    } else {
+        cov_init <- cov_init + diag(1e-4, n_params)
+    }
+
+    scale_factor <- (2.38^2) / max(n_params, 1)
+    chol_prop <- tryCatch(
+        chol(cov_init * scale_factor),
+        error = function(e) diag(0.15, n_params)
+    )
+
+    log_post_fn <- function(gamma_vec, N_vec) {
+        eta <- pmax(-15, pmin(15, as.vector(Z_surv %*% gamma_vec) + off_surv))
+        ll <- sum(N_vec * eta - exp(eta))
+        lp <- sum(stats::dnorm(gamma_vec, mean = 0, sd = prior_sd, log = TRUE))
+        ll + lp
+    }
+
+    gamma_draws <- array(0, dim = c(n_keep, chains, n_params))
+    lambda_all_draws <- array(1, dim = c(n_all, n_keep, chains))
+    n_log_lik <- matrix(0, nrow = n_surv, ncol = n_keep * chains)
+    warmup_mh <- 200
+
+    for (c_idx in seq_len(chains)) {
+        gamma_cur <- gamma_init +
+            as.vector(t(chol_prop) %*% stats::rnorm(n_params, 0, 0.25))
+        N_init_vec <- vapply(
+            seq_len(n_surv),
+            function(i) max(0, N_surv_draws_list[[i]][1, c_idx]),
+            numeric(1)
+        )
+        lp_cur <- log_post_fn(gamma_cur, N_init_vec)
+
+        for (w in seq_len(warmup_mh)) {
+            gamma_prop <- gamma_cur +
+                as.vector(t(chol_prop) %*% stats::rnorm(n_params))
+            lp_prop <- log_post_fn(gamma_prop, N_init_vec)
+            if (is.finite(lp_prop) && log(stats::runif(1)) < (lp_prop - lp_cur)) {
+                gamma_cur <- gamma_prop
+                lp_cur <- lp_prop
+            }
+        }
+
+        for (s in seq_len(n_keep)) {
+            N_s_vec <- vapply(
+                seq_len(n_surv),
+                function(i) max(0, N_surv_draws_list[[i]][s, c_idx]),
+                numeric(1)
+            )
+            lp_cur <- log_post_fn(gamma_cur, N_s_vec)
+            gamma_prop <- gamma_cur +
+                as.vector(t(chol_prop) %*% stats::rnorm(n_params))
+            lp_prop <- log_post_fn(gamma_prop, N_s_vec)
+            if (is.finite(lp_prop) && log(stats::runif(1)) < (lp_prop - lp_cur)) {
+                gamma_cur <- gamma_prop
+                lp_cur <- lp_prop
+            }
+            gamma_draws[s, c_idx, ] <- gamma_cur
+            eta_all <- pmax(-15, pmin(15, as.vector(Z_all %*% gamma_cur) + off_all))
+            lambda_all_draws[, s, c_idx] <- exp(eta_all)
+
+            eta_surv <- pmax(-15, pmin(15, as.vector(Z_surv %*% gamma_cur) + off_surv))
+            draw_col <- (c_idx - 1) * n_keep + s
+            n_log_lik[, draw_col] <- stats::dpois(
+                round(N_s_vec),
+                lambda = pmax(1e-6, exp(eta_surv)),
+                log = TRUE
+            )
+        }
+    }
+
+    param_names <- colnames(Z_surv)
+    gamma_summary <- data.frame(
+        Mean = numeric(n_params),
+        SD = numeric(n_params),
+        CI_2.5 = numeric(n_params),
+        CI_97.5 = numeric(n_params),
+        Rhat = numeric(n_params),
+        ESS = numeric(n_params),
+        row.names = param_names
+    )
+
+    for (p_idx in seq_len(n_params)) {
+        p_mat <- matrix(gamma_draws[, , p_idx], nrow = n_keep, ncol = chains)
+        p_vec <- as.vector(p_mat)
+        diag_p <- compute_mcmc_diagnostics(p_mat)
+        qs <- stats::quantile(p_vec, probs = c(0.025, 0.975), names = FALSE)
+        gamma_summary$Mean[p_idx] <- mean(p_vec)
+        gamma_summary$SD[p_idx] <- stats::sd(p_vec)
+        gamma_summary$CI_2.5[p_idx] <- qs[1]
+        gamma_summary$CI_97.5[p_idx] <- qs[2]
+        gamma_summary$Rhat[p_idx] <- diag_p$rhat
+        gamma_summary$ESS[p_idx] <- diag_p$ess
+    }
+
+    list(
+        lambda_all_draws = lambda_all_draws,
+        gamma_summary = gamma_summary,
+        gamma_draws = gamma_draws,
+        n_log_lik = n_log_lik
+    )
+}
+
 #' Compute Bayesian Sector-Level and Total Posterior Abundance Estimates
 #'
 #' @keywords internal
@@ -568,6 +713,7 @@ compute_bayesian_sectors <- function(
     pooling,
     bayes_res,
     bayes_cov_res,
+    n_formula = NULL,
     iter,
     burnin
 ) {
@@ -586,8 +732,13 @@ compute_bayesian_sectors <- function(
         ci_upper = numeric(n_sec)
     )
 
+    N_sec_draws_all <- vector("list", n_sec)
+
     for (i in seq_len(n_sec)) {
         row <- data[i, ]
+        if (identical(row$survey_type, "Unsurveyed")) {
+            next
+        }
         mean_size_i <- row$mean_group_size
 
         if (pooling == "hybrid" && row$survey_type == "DO") {
@@ -638,7 +789,12 @@ compute_bayesian_sectors <- function(
 
         N_sec_mat <- G_sec_mat * mean_size_i
         N_point <- G_point * mean_size_i
-        N_sec_mat <- N_sec_mat - mean(N_sec_mat) + N_point
+        N_sec_mat <- matrix(
+            pmax(N_sec_mat - mean(N_sec_mat) + N_point, row$total_count),
+            nrow = n_keep,
+            ncol = n_ch
+        )
+        N_sec_draws_all[[i]] <- N_sec_mat
         total_N_draws_mat <- total_N_draws_mat + N_sec_mat
 
         N_sec_vec <- as.vector(N_sec_mat)
@@ -655,10 +811,72 @@ compute_bayesian_sectors <- function(
         sector_estimates$ci_upper[i] <- max(row$total_count, sec_qs[2])
     }
 
+    n_model <- NULL
+    bayes_n_res <- NULL
+    surv_mask <- data$survey_type != "Unsurveyed"
+    mean_gs_pool <- sum(data$total_count[surv_mask], na.rm = TRUE) /
+        max(1, sum(data$detected_groups[surv_mask], na.rm = TRUE))
+
+    if (!is.null(n_formula)) {
+        if (!inherits(n_formula, "formula")) {
+            stop("n_formula must be a valid R formula (e.g. ~ elevation + habitat)")
+        }
+        surv_df <- data[surv_mask, , drop = FALSE]
+        surv_df$est_abundance <- sector_estimates$est_abundance[surv_mask]
+        if (nrow(surv_df) < 2) {
+            stop("At least 2 surveyed sectors are required to fit an abundance model (n_formula).")
+        }
+        n_mod_formula <- stats::update(n_formula, est_abundance ~ .)
+        n_model <- tryCatch(
+            eval(bquote(stats::glm(
+                .(n_mod_formula),
+                family = stats::quasipoisson(link = "log"),
+                data = surv_df
+            ))),
+            error = function(e) {
+                stop(paste("Failed to fit GLM for sector abundance (n_formula):", e$message))
+            }
+        )
+        N_surv_draws_list <- N_sec_draws_all[which(surv_mask)]
+        bayes_n_res <- fit_bayesian_abundance_mcmc(
+            n_formula = n_formula,
+            surv_data = surv_df,
+            all_data = data,
+            N_surv_draws_list = N_surv_draws_list,
+            n_glm_mod = n_model
+        )
+
+        unsurv_idx <- which(!surv_mask)
+        if (length(unsurv_idx) > 0) {
+            for (u_i in unsurv_idx) {
+                lam_u_mat <- matrix(
+                    bayes_n_res$lambda_all_draws[u_i, , ],
+                    nrow = n_keep,
+                    ncol = n_ch
+                )
+                N_u_mat <- matrix(
+                    stats::rpois(n_keep * n_ch, lambda = pmax(0, lam_u_mat)),
+                    nrow = n_keep,
+                    ncol = n_ch
+                )
+                total_N_draws_mat <- total_N_draws_mat + N_u_mat
+                N_u_vec <- as.vector(N_u_mat)
+                N_u_point <- mean(lam_u_mat)
+                u_qs <- stats::quantile(N_u_vec, probs = c(0.025, 0.975), names = FALSE)
+
+                sector_estimates$est_groups[u_i] <- N_u_point / max(mean_gs_pool, 1e-6)
+                sector_estimates$est_abundance[u_i] <- N_u_point
+                sector_estimates$se_abundance[u_i] <- stats::sd(N_u_vec)
+                sector_estimates$ci_lower[u_i] <- u_qs[1]
+                sector_estimates$ci_upper[u_i] <- u_qs[2]
+            }
+        }
+    }
+
     tot_N_vec <- as.vector(total_N_draws_mat)
     total_abundance <- mean(tot_N_vec)
     total_variance <- stats::var(tot_N_vec)
-    total_seen <- sum(data$total_count)
+    total_seen <- sum(data$total_count, na.rm = TRUE)
     tot_qs <- stats::quantile(tot_N_vec, probs = c(0.025, 0.975), names = FALSE)
 
     tot_diag <- compute_mcmc_diagnostics(total_N_draws_mat)
@@ -711,6 +929,9 @@ compute_bayesian_sectors <- function(
         ci_lower = max(total_seen, tot_qs[1]),
         ci_upper = max(total_seen, tot_qs[2]),
         mcmc_diagnostics = mcmc_diagnostics,
-        log_lik = log_lik_mat
+        log_lik = log_lik_mat,
+        n_model = n_model,
+        bayes_n_res = bayes_n_res,
+        mean_gs_pool = mean_gs_pool
     )
 }

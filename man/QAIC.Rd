@@ -16,6 +16,7 @@ A numeric QAIC value, or a comparison data frame if multiple models are passed.
 }
 \description{
 Computes the Quasi-Akaike Information Criterion (QAIC) for frequentist statistical
-models that handle overdispersion (such as quasi-binomial GLM covariate models in \code{\link{doas}}).
+models that handle overdispersion (such as quasi-binomial detection GLM models via \code{p_formula}
+or quasi-poisson abundance GLM models via \code{n_formula} in \code{\link{doas}}).
 For Bayesian MCMC models (\code{method = "bayesian"}), use \code{\link{WAIC}} instead.
 }

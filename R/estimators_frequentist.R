@@ -220,6 +220,7 @@ compute_frequentist_sectors <- function(
     obs_type,
     pooling,
     model,
+    n_formula = NULL,
     mean_p_hat,
     var_mean_p_hat
 ) {
@@ -245,7 +246,7 @@ compute_frequentist_sectors <- function(
     if (!is.null(model)) {
         rhs_terms <- stats::delete.response(stats::terms(model))
         X_all <- tryCatch(
-            stats::model.matrix(rhs_terms, data = data),
+            stats::model.matrix(rhs_terms, data = data, xlev = model$xlevels),
             error = function(e) NULL
         )
         vcov_beta <- tryCatch(
@@ -256,7 +257,8 @@ compute_frequentist_sectors <- function(
             !is.null(X_all) &&
                 !is.null(vcov_beta) &&
                 !any(is.na(vcov_beta)) &&
-                !any(is.nan(vcov_beta))
+                !any(is.nan(vcov_beta)) &&
+                ncol(X_all) == nrow(vcov_beta)
         ) {
             has_valid_vcov <- TRUE
             grad_beta <- numeric(ncol(X_all))
@@ -265,6 +267,9 @@ compute_frequentist_sectors <- function(
 
     for (i in seq_len(n_sec)) {
         row <- data[i, ]
+        if (identical(row$survey_type, "Unsurveyed")) {
+            next
+        }
 
         if (pooling == "hybrid" && row$survey_type == "DO") {
             match_idx <- which(do_data$sector_id == row$sector_id)[1]
@@ -338,6 +343,83 @@ compute_frequentist_sectors <- function(
         sector_estimates$ci_upper[i] <- bounds[2]
     }
 
+    n_model <- NULL
+    surv_mask <- data$survey_type != "Unsurveyed"
+    mean_gs_pool <- sum(data$total_count[surv_mask], na.rm = TRUE) /
+        max(1, sum(data$detected_groups[surv_mask], na.rm = TRUE))
+
+    if (!is.null(n_formula)) {
+        if (!inherits(n_formula, "formula")) {
+            stop("n_formula must be a valid R formula (e.g. ~ elevation + habitat)")
+        }
+        surv_df <- data[surv_mask, , drop = FALSE]
+        surv_df$est_abundance <- sector_estimates$est_abundance[surv_mask]
+        if (nrow(surv_df) < 2) {
+            stop("At least 2 surveyed sectors are required to fit an abundance GLM (n_formula).")
+        }
+        n_mod_formula <- stats::update(n_formula, est_abundance ~ .)
+        n_model <- tryCatch(
+            eval(bquote(stats::glm(
+                .(n_mod_formula),
+                family = stats::quasipoisson(link = "log"),
+                data = surv_df
+            ))),
+            error = function(e) {
+                stop(paste("Failed to fit GLM for sector abundance (n_formula):", e$message))
+            }
+        )
+
+        unsurv_idx <- which(!surv_mask)
+        if (length(unsurv_idx) > 0) {
+            c_hat_n <- tryCatch(summary(n_model)$dispersion, error = function(e) 1.0)
+            if (is.na(c_hat_n) || is.nan(c_hat_n) || c_hat_n <= 0) {
+                c_hat_n <- 1.0
+            }
+            rhs_n_terms <- stats::delete.response(stats::terms(n_model))
+            Z_unsurv <- tryCatch(
+                stats::model.matrix(rhs_n_terms, data = data[unsurv_idx, , drop = FALSE], xlev = n_model$xlevels),
+                error = function(e) NULL
+            )
+            vcov_gamma <- tryCatch(stats::vcov(n_model), error = function(e) NULL)
+            has_n_vcov <- !is.null(Z_unsurv) && !is.null(vcov_gamma) &&
+                !any(is.na(vcov_gamma)) && ncol(Z_unsurv) == nrow(vcov_gamma)
+            grad_gamma <- if (has_n_vcov) numeric(ncol(Z_unsurv)) else NULL
+
+            for (k in seq_along(unsurv_idx)) {
+                u_i <- unsurv_idx[k]
+                pred_u <- stats::predict(
+                    n_model,
+                    newdata = data[u_i, , drop = FALSE],
+                    type = "link",
+                    se.fit = TRUE
+                )
+                N_u <- exp(as.numeric(pred_u$fit))
+                se_eta_u <- as.numeric(pred_u$se.fit)
+                var_param_u <- if (!is.na(se_eta_u) && !is.nan(se_eta_u)) (N_u * se_eta_u)^2 else 0
+                var_proc_u <- c_hat_n * N_u
+                var_u <- var_proc_u + var_param_u
+
+                bounds_u <- compute_lognormal_ci(N_u, var_u, 0)
+                sector_estimates$est_groups[u_i] <- N_u / max(mean_gs_pool, 1e-6)
+                sector_estimates$est_abundance[u_i] <- N_u
+                sector_estimates$se_abundance[u_i] <- sqrt(var_u)
+                sector_estimates$ci_lower[u_i] <- bounds_u[1]
+                sector_estimates$ci_upper[u_i] <- bounds_u[2]
+
+                if (has_n_vcov) {
+                    total_indep_variance <- total_indep_variance + var_proc_u
+                    grad_gamma <- grad_gamma + N_u * Z_unsurv[k, ]
+                } else {
+                    total_indep_variance <- total_indep_variance + var_u
+                }
+            }
+            if (has_n_vcov) {
+                total_indep_variance <- total_indep_variance +
+                    as.numeric(t(grad_gamma) %*% vcov_gamma %*% grad_gamma)
+            }
+        }
+    }
+
     total_abundance <- sum(sector_estimates$est_abundance)
     shared_p_variance <- if (!is.null(model) && has_valid_vcov) {
         as.numeric(t(grad_beta) %*% vcov_beta %*% grad_beta)
@@ -350,7 +432,7 @@ compute_frequentist_sectors <- function(
     tot_bounds <- compute_lognormal_ci(
         total_abundance,
         total_variance,
-        sum(data$total_count)
+        sum(data$total_count, na.rm = TRUE)
     )
 
     list(
@@ -359,6 +441,8 @@ compute_frequentist_sectors <- function(
         total_variance = total_variance,
         se_abundance = sqrt(total_variance),
         ci_lower = tot_bounds[1],
-        ci_upper = tot_bounds[2]
+        ci_upper = tot_bounds[2],
+        n_model = n_model,
+        mean_gs_pool = mean_gs_pool
     )
 }

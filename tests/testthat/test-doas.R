@@ -93,20 +93,20 @@ test_that("doas_power runs without error", {
             names(power_res)
     ))
 
-    # Test power analysis with simulated sector covariate and formula
+    # Test power analysis with simulated sector covariate and p_formula
     power_cov <- doas_power(
         n_sims = 2,
         surv_areas = 4,
         pop_size = 200,
         tot_areas = 6,
         cov_effect = 0.5,
-        formula = ~covariate
+        p_formula = ~covariate
     )
     expect_s3_class(power_cov, "data.frame")
     expect_equal(nrow(power_cov), 1)
 })
 
-test_that("doas with formula computes covariate models correctly", {
+test_that("doas with p_formula computes covariate models correctly", {
     data <- data.frame(
         sector_id = c(1, 2, 3, 4, 5),
         total_count = c(50, 30, 80, 20, 100),
@@ -118,14 +118,14 @@ test_that("doas with formula computes covariate models correctly", {
         effort = c(1.5, 0.8, 2.0, 0.5, 2.5)
     )
 
-    res <- doas(data, formula = ~effort)
+    res <- doas(data, p_formula = ~effort)
 
     expect_s3_class(res, "doas")
     expect_equal(res$method, "frequentist")
     expect_equal(res$pooling, "hybrid")
     expect_equal(res$num_do_sectors, 3)
     expect_s3_class(res$model, "glm")
-    expect_equal(deparse(res$formula), "~effort")
+    expect_equal(deparse(res$p_formula), "~effort")
     expect_true(res$total_abundance > 0)
     expect_true(res$se_abundance > 0)
 })
@@ -165,8 +165,8 @@ test_that("QAIC is calculated correctly for covariate models", {
         habitat = c("A", "A", "B", "B", "B", "A")
     )
 
-    mod1 <- doas(data, formula = ~effort)
-    mod2 <- doas(data, formula = ~ effort + habitat)
+    mod1 <- doas(data, p_formula = ~effort)
+    mod2 <- doas(data, p_formula = ~ effort + habitat)
     mod3 <- doas(data)
 
     qaic1 <- QAIC(mod1)
@@ -288,7 +288,7 @@ test_that("doas computes multi-chain bayesian independent and dependent estimate
         data,
         method = "bayesian",
         obs_type = "independent",
-        formula = ~effort,
+        p_formula = ~effort,
         chains = 3,
         iter = 800,
         burnin = 200
@@ -364,5 +364,81 @@ test_that("doas_data formats and validates sector, group-long, and sighting-long
     )
     df_no_both <- doas_data(sec_no_both, format = "sector")
     expect_equal(df_no_both$groups_both, c(7, 4, NA))
+
+    # 4. Multiple covariates and interaction terms (lm/glm style formulas)
+    set.seed(42)
+    cov_df <- data.frame(
+        sector_id = paste0("S", 1:10),
+        total_count = c(60, 45, 80, 50, 70, 40, 90, 55, 65, 75),
+        detected_groups = c(10, 8, 12, 9, 11, 7, 14, 9, 10, 11),
+        groups_both = c(6, 4, 8, 5, 7, 3, NA, NA, NA, NA),
+        groups_obs1 = c(2, 2, 2, 2, 2, 2, NA, NA, NA, NA),
+        groups_obs2 = c(2, 2, 2, 2, 2, 2, NA, NA, NA, NA),
+        effort = rnorm(10),
+        ruggedness = rnorm(10)
+    )
+    d_cov <- doas_data(cov_df)
+    expect_true(all(c("effort", "ruggedness") %in% names(d_cov)))
+
+    fit_f_int <- doas(d_cov, method = "frequentist", p_formula = ~ effort * ruggedness)
+    expect_equal(length(stats::coef(fit_f_int$model)), 4)
+
+    fit_b_int <- doas(
+        d_cov,
+        method = "bayesian",
+        p_formula = ~ effort * ruggedness,
+        chains = 2,
+        iter = 400,
+        burnin = 100
+    )
+    expect_equal(nrow(fit_b_int$bayes_coef), 4)
+    expect_true("effort:ruggedness" %in% rownames(fit_b_int$bayes_coef))
+
+    # 5. Abundance covariate modeling (n_formula), unsurveyed sectors, and predict.doas()
+    fit_fn <- doas(
+        d_cov,
+        method = "frequentist",
+        p_formula = ~effort,
+        n_formula = ~ruggedness
+    )
+    expect_s3_class(fit_fn$n_model, "glm")
+
+    new_grid <- data.frame(
+        effort = c(-1, 0, 1),
+        ruggedness = c(-0.5, 0, 0.5)
+    )
+    pred_n <- predict(fit_fn, newdata = new_grid, type = "abundance")
+    pred_p <- predict(fit_fn, newdata = new_grid, type = "detection")
+    pred_g <- predict(fit_fn, newdata = new_grid, type = "groups")
+    expect_equal(nrow(pred_n), 3)
+    expect_true(all(c("fit", "se", "ci_lower", "ci_upper") %in% names(pred_n)))
+    expect_true(all(pred_p$fit > 0 & pred_p$fit < 1))
+    expect_true(all(pred_g$fit > 0))
+
+    # Bayesian n_formula + predict()
+    fit_bn <- doas(
+        d_cov,
+        method = "bayesian",
+        p_formula = ~effort,
+        n_formula = ~ruggedness,
+        chains = 2,
+        iter = 400,
+        burnin = 100
+    )
+    expect_equal(nrow(fit_bn$bayes_n_coef), 2)
+    pred_bn <- predict(fit_bn, newdata = new_grid, type = "abundance")
+    expect_equal(nrow(pred_bn), 3)
+    expect_true(all(pred_bn$fit > 0))
+
+    # Imputing an unsurveyed sector (total_count = NA) via n_formula
+    cov_unsurv <- cov_df
+    cov_unsurv$total_count[10] <- NA
+    cov_unsurv$detected_groups[10] <- NA
+    d_unsurv <- doas_data(cov_unsurv)
+    expect_equal(d_unsurv$survey_type[10], "Unsurveyed")
+    expect_error(doas(d_unsurv), "n_formula")
+
+    fit_unsurv <- doas(d_unsurv, n_formula = ~ruggedness)
+    expect_true(fit_unsurv$sector_estimates$est_abundance[10] > 0)
 })
 

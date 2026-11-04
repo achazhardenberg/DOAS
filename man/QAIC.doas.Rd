@@ -15,15 +15,15 @@
 A numeric QAIC value, or a data frame if multiple models are passed.
 }
 \description{
-Extracts the QAIC for frequentist DOAS models that used a covariate formula.
-Standard AIC is undefined for the quasi-binomial GLM used under the hood,
-so QAIC penalizes the binomial likelihood by the estimated overdispersion
-parameter (\eqn{\hat{c}}).
+Extracts the QAIC for frequentist DOAS models that used a detection covariate formula
+(\code{p_formula}) or an abundance covariate formula (\code{n_formula}).
+Standard AIC is undefined for quasi-likelihood GLMs, so QAIC penalizes the
+log-likelihood by the estimated overdispersion parameter (\eqn{\hat{c}}).
 }
 \examples{
 \dontrun{
-mod1 <- doas(data, method = "frequentist", formula = ~ effort)
-mod2 <- doas(data, method = "frequentist", formula = ~ effort + habitat)
+mod1 <- doas(data, method = "frequentist", p_formula = ~ effort)
+mod2 <- doas(data, method = "frequentist", p_formula = ~ effort + habitat)
 QAIC(mod1, mod2)
 }
 }

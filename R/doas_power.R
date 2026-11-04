@@ -17,7 +17,8 @@ run_single_power_sim <- function(
     method,
     obs_type,
     pooling,
-    formula,
+    p_formula,
+    n_formula,
     ci_method
 ) {
     pop <- simulate_pop(
@@ -45,7 +46,8 @@ run_single_power_sim <- function(
                 method = method,
                 obs_type = obs_type,
                 pooling = pooling,
-                formula = formula,
+                p_formula = p_formula,
+                n_formula = n_formula,
                 ci_method = ci_method
             )
         },
@@ -91,7 +93,8 @@ run_single_power_sim <- function(
 #' @param method Statistical inference paradigm (\code{"frequentist"} or \code{"bayesian"}).
 #' @param obs_type Observer field protocol (\code{"independent"} or \code{"dependent"}).
 #' @param pooling Sector pooling strategy (\code{"hybrid"} or \code{"global"}).
-#' @param formula Optional formula (e.g., \code{~ covariate} or \code{~ mean_group_size}) passed to \code{\link{doas}}.
+#' @param p_formula Optional detection formula (e.g., \code{~ covariate} or \code{~ mean_group_size}) passed to \code{\link{doas}}.
+#' @param n_formula Optional abundance formula passed to \code{\link{doas}}.
 #' @param ci_method Confidence interval method (\code{"lognormal"} or \code{"bootstrap"}).
 #'
 #' @return A data frame summarizing performance metrics for each scenario in \code{surv_areas}:
@@ -120,7 +123,8 @@ doas_power <- function(
     method = c("frequentist", "bayesian"),
     obs_type = c("independent", "dependent"),
     pooling = c("hybrid", "global"),
-    formula = NULL,
+    p_formula = NULL,
+    n_formula = NULL,
     ci_method = c("lognormal", "bootstrap")
 ) {
     method <- match.arg(method)
@@ -149,7 +153,8 @@ doas_power <- function(
                     method = method,
                     obs_type = obs_type,
                     pooling = pooling,
-                    formula = formula,
+                    p_formula = p_formula,
+                    n_formula = n_formula,
                     ci_method = ci_method
                 )
             },

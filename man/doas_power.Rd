@@ -20,7 +20,8 @@ doas_power(
   method = c("frequentist", "bayesian"),
   obs_type = c("independent", "dependent"),
   pooling = c("hybrid", "global"),
-  formula = NULL,
+  p_formula = NULL,
+  n_formula = NULL,
   ci_method = c("lognormal", "bootstrap")
 )
 }
@@ -55,7 +56,9 @@ doas_power(
 
 \item{pooling}{Sector pooling strategy (\code{"hybrid"} or \code{"global"}).}
 
-\item{formula}{Optional formula (e.g., \code{~ covariate} or \code{~ mean_group_size}) passed to \code{\link{doas}}.}
+\item{p_formula}{Optional detection formula (e.g., \code{~ covariate} or \code{~ mean_group_size}) passed to \code{\link{doas}}.}
+
+\item{n_formula}{Optional abundance formula passed to \code{\link{doas}}.}
 
 \item{ci_method}{Confidence interval method (\code{"lognormal"} or \code{"bootstrap"}).}
 }

@@ -3,9 +3,9 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The **DOAS** R package provides a unified Frequentist and Hierarchical Bayesian statistical framework to estimate wildlife population abundance by combining standard, low-effort single-observer block counts across a study area with targeted Double Observer (DO) surveys in a subset of spatial sectors.
+The **DOAS** R package provides a unified Frequentist and Hierarchical Bayesian statistical framework to estimate wildlife population abundance from either **full Double Observer (DO) surveys** (100% of sectors surveyed by two observers) or **partial Double Observer Adjusted Surveys (DOAS)** that combine targeted DO surveys in a subset of sectors with single-observer block counts across the remaining study area.
 
-By calibrating detection probability on the Double Observer sectors—and optionally modeling sector-level detection covariates—`DOAS` corrects for imperfect detection ($p < 1$) across the entire landscape while substantially reducing field personnel requirements.
+By calibrating detection probability on the Double Observer sectors—and optionally modeling both detection covariates (`p_formula`) and habitat/abundance covariates (`n_formula`)—`DOAS` corrects for imperfect detection ($p < 1$) across entire landscapes while substantially reducing field personnel requirements.
 
 ## Installation
 
@@ -20,29 +20,31 @@ devtools::install_github("achazhardenberg/DOAS", build_vignettes = TRUE)
 
 ### 1. Flexible Data Ingestion & Validation
 - **`doas_data()`**: Validates and standardizes survey data from three field recording formats into a `doas_data` object (with a dedicated `print()` summary):
-  - `format = "sector"`: Wide sector-level summaries (`total_count`, `detected_groups`, `groups_both`, `groups_obs1`, `groups_obs2`). Automatically infers `detected_groups` or `groups_both` if one is omitted in DO sectors and verifies arithmetic consistency.
+  - `format = "sector"`: Wide sector-level summaries (`total_count`, `detected_groups`, `groups_both`, `groups_obs1`, `groups_obs2`). Automatically infers `detected_groups` or `groups_both` if one is omitted in DO sectors, retains all sector-level covariate columns, and flags sectors with `total_count = NA` as `"Unsurveyed"` for prediction via `n_formula`.
   - `format = "group"`: Long group-level capture histories (one row per detected animal group with `obs1` and `obs2` binary detection indicators).
   - `format = "sighting"`: Long observer-sighting records reconciled by `group_id` and `observer`.
 
 ### 2. Frequentist & Hierarchical Bayesian Abundance Estimators
-- **`doas()`**: Core abundance estimator controlled by three orthogonal design arguments:
-  - **`method = c("frequentist", "bayesian")`**: Choose between Frequentist estimation (with analytical multivariate Delta-method or non-parametric spatial block `"bootstrap"` confidence intervals) and multi-chain Hierarchical Bayesian MCMC estimation (reporting posterior means, 95% credible intervals, Gelman–Rubin $\hat{R}$, and effective sample size $n_{\text{eff}}$).
+- **`doas()`**: Core abundance estimator supporting both full Double Observer surveys and partial DOAS designs via orthogonal arguments:
+  - **`method = c("frequentist", "bayesian")`**: Choose between Frequentist estimation (with analytical multivariate Delta-method or non-parametric spatial block `"bootstrap"` confidence intervals) and pure-R multi-chain Hierarchical Bayesian MCMC estimation (reporting posterior means, 95% credible intervals, Gelman–Rubin $\hat{R}$, and effective sample size $n_{\text{eff}}$).
   - **`obs_type = c("independent", "dependent")`**: Supports both simultaneous independent observers (Chapman mark–recapture with symmetric observer pool efficiency $\bar{p} = (p_1 + p_2)/2$) and dependent primary–secondary observer protocols (Zippin removal).
-  - **`pooling = c("hybrid", "global")`**: `"hybrid"` (default) retains direct mark–recapture estimates inside surveyed DO sectors and extrapolates only single-observer Block sectors; `"global"` applies the calibrated single-observer detection rate across all sectors.
-  - **`formula = ~ covariate`**: Models sector-level variation in detection probability using covariates (e.g., survey effort, terrain ruggedness, visibility).
+  - **`pooling = c("hybrid", "global")`**: `"hybrid"` (default) retains direct mark–recapture estimates inside surveyed DO sectors and extrapolates only single-observer Block sectors; `"global"` applies the calibrated single-observer detection rate across all surveyed sectors.
+  - **`p_formula = ~ ...`**: Models sector-level variation in detection probability using standard R linear model formulas (supporting multiple covariates, interaction terms such as `~ effort * ruggedness`, and polynomial terms).
+  - **`n_formula = ~ ...`**: Models sector-level abundance ($\log \lambda_i = \mathbf{z}_i^\top \boldsymbol{\gamma}$) as a function of environmental covariates (e.g., `~ elevation + habitat + offset(log(area))`), automatically imputing any unsurveyed sectors (`total_count = NA`).
+- **`predict.doas()`**: S3 `predict()` method that predicts sector abundance (`type = "abundance"`), group count (`type = "groups"`), or detection probability (`type = "detection"`) with standard errors and 95% confidence/credible intervals for in-sample sectors or new covariate grids (`newdata`).
 - **Low-Level Building Blocks**:
   - `chapman_estimate()` & `chapman_variance()`: Bias-corrected independent double-observer estimator and Seber (1982) variance.
   - `dependent_zippin_estimate()` & `dependent_zippin_variance()`: Primary–secondary observer removal estimator and variance.
-  - `bayesian_conjugate_estimate()`: Bound-safe conjugate Beta–Binomial Monte Carlo abundance estimator for individual DO sectors.
+  - `bayesian_conjugate_estimate()`: Bound-safe multi-chain conjugate Beta–Binomial MCMC abundance estimator for DO sectors.
 
 ### 3. Information-Theoretic Model Selection
-- **`QAIC()`**: Computes the Quasi-Akaike Information Criterion ($\hat{c}$, $K$, $\Delta\text{QAIC}$, and Akaike weights) to rank competing frequentist `doas` covariate models while accounting for overdispersion.
-- **`WAIC()`**: Computes the Widely Applicable Information Criterion ($\text{lppd}$, $p_{\text{WAIC}}$, $\Delta\text{WAIC}$, and model weights) from the pointwise posterior log-likelihood matrix of Bayesian `doas` models.
+- **`QAIC()`**: Computes the Quasi-Akaike Information Criterion ($\hat{c}$, $K$, $\Delta\text{QAIC}$) to rank competing frequentist `doas` detection (`p_formula`) or abundance (`n_formula`) models while accounting for overdispersion.
+- **`WAIC()`**: Computes the Widely Applicable Information Criterion ($\text{lppd}$, $p_{\text{WAIC}}$, $\Delta\text{WAIC}$) from the pointwise posterior log-likelihood matrix of Bayesian `doas` models.
 
 ### 4. Simulation & Prospective Power Analysis
 - **`simulate_pop()`**: Generates spatially structured animal populations partitioned into groups across sectors.
-- **`simulate_survey()`**: Simulates partial Double Observer and Block count surveys with group-size scaling, counting error, inter-observer skill differences (`obs_effect`), inter-sector heterogeneity (`detvar`), and sector covariate effects (`cov_effect`).
-- **`doas_power()`**: Conducts Monte Carlo power and accuracy analyses across varying numbers of Double Observer sectors (`surv_areas_vec`) for any combination of `method`, `obs_type`, `pooling`, and `formula`.
+- **`simulate_survey()`**: Simulates full DO or partial DOAS surveys with group-size scaling, counting error, inter-observer skill differences (`obs_effect`), inter-sector heterogeneity (`detvar`), and sector covariate effects (`cov_effect`).
+- **`doas_power()`**: Conducts Monte Carlo power and accuracy analyses across varying numbers of Double Observer sectors (`surv_areas`) for any combination of `method`, `obs_type`, `pooling`, `p_formula`, and `n_formula`.
 
 ## Quick Start Example
 
@@ -57,13 +59,14 @@ raw_data <- data.frame(
   groups_both     = c(6, 3, 4, NA, NA),
   groups_obs1     = c(1, 1, 1, NA, NA),
   groups_obs2     = c(1, 1, 1, NA, NA),
-  effort          = c(1.2, -0.5, 0.3, -0.8, 0.9)
+  effort          = c(1.2, -0.5, 0.3, -0.8, 0.9),
+  elevation       = c(2200, 1950, 2100, 2400, 2550)
 )
 
 survey_dat <- doas_data(raw_data, format = "sector")
 print(survey_dat)
 
-# 2. Frequentist Hybrid Estimation (Null vs. Covariate Model)
+# 2. Frequentist Hybrid Estimation (Detection & Abundance Covariates)
 fit_freq_null <- doas(
   survey_dat,
   method   = "frequentist",
@@ -73,14 +76,20 @@ fit_freq_null <- doas(
 
 fit_freq_cov <- doas(
   survey_dat,
-  method   = "frequentist",
-  obs_type = "independent",
-  pooling  = "hybrid",
-  formula  = ~ effort
+  method    = "frequentist",
+  obs_type  = "independent",
+  pooling   = "hybrid",
+  p_formula = ~ effort,
+  n_formula = ~ elevation
 )
 
-summary(fit_freq_null)
+summary(fit_freq_cov)
 QAIC(fit_freq_null, fit_freq_cov)
+
+# Predict detection probability and expected abundance across an elevation/effort gradient
+new_sectors <- data.frame(effort = c(-0.5, 0.5, 1.5), elevation = c(2000, 2300, 2600))
+predict(fit_freq_cov, newdata = new_sectors, type = "detection")
+predict(fit_freq_cov, newdata = new_sectors, type = "abundance")
 
 # 3. Multi-Chain Hierarchical Bayesian Estimation & WAIC Selection
 fit_bayes_null <- doas(
@@ -95,16 +104,17 @@ fit_bayes_null <- doas(
 
 fit_bayes_cov <- doas(
   survey_dat,
-  method   = "bayesian",
-  obs_type = "independent",
-  pooling  = "hybrid",
-  formula  = ~ effort,
-  chains   = 3,
-  iter     = 2000,
-  burnin   = 500
+  method    = "bayesian",
+  obs_type  = "independent",
+  pooling   = "hybrid",
+  p_formula = ~ effort,
+  n_formula = ~ elevation,
+  chains    = 3,
+  iter      = 2000,
+  burnin    = 500
 )
 
-summary(fit_bayes_null)
+summary(fit_bayes_cov)
 WAIC(fit_bayes_null, fit_bayes_cov)
 ```
 

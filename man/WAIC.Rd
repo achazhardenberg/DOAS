@@ -21,5 +21,6 @@ If a single model is provided, a numeric scalar WAIC value (with attributes
 Computes the Watanabe-Akaike (Widely Applicable) Information Criterion (WAIC;
 Watanabe 2010; Gelman, Hwang & Vehtari 2014) from the full pointwise posterior
 log-likelihood draws of Bayesian MCMC \code{\link{doas}} models (\code{method = "bayesian"}).
-Can compare both covariate models (\code{formula = ~ ...}) and the null model (\code{formula = NULL}).
+Can compare both detection covariate models (\code{p_formula = ~ ...}), abundance
+covariate models (\code{n_formula = ~ ...}), and the null model.
 }
