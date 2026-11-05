@@ -36,11 +36,15 @@ reference:
       - simulate_survey
       - doas_power
 
-  - title: "Model Selection"
-    desc: "Information criteria for frequentist and Bayesian models."
+  - title: "Model Selection & Diagnostics"
+    desc: "Information criteria and Bayesian posterior predictive checks (PPC) via bayesplot."
     contents:
       - QAIC
       - WAIC
+      - pp_check
+      - posterior_predict
+      - as.array.doas
+      - as.matrix.doas
 
   - title: "Base Estimators"
     desc: "Underlying mathematical estimators for mark-recapture and removal setups."
