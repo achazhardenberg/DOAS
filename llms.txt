@@ -261,14 +261,23 @@ power analyses.
 - [`doas_power()`](https://achazhardenberg.github.io/DOAS/reference/doas_power.md)
   : DOAS Power Analysis
 
-## Model Selection
+## Model Selection & Diagnostics
 
-Information criteria for frequentist and Bayesian models.
+Information criteria and Bayesian posterior predictive checks (PPC) via
+bayesplot.
 
 - [`QAIC()`](https://achazhardenberg.github.io/DOAS/reference/QAIC.md) :
   Quasi-Akaike Information Criterion (QAIC)
 - [`WAIC()`](https://achazhardenberg.github.io/DOAS/reference/WAIC.md) :
   Widely Applicable Information Criterion (WAIC)
+- [`pp_check()`](https://achazhardenberg.github.io/DOAS/reference/pp_check.md)
+  : Graphical Posterior Predictive Checks for DOAS Bayesian Models
+- [`posterior_predict()`](https://achazhardenberg.github.io/DOAS/reference/posterior_predict.md)
+  : Draw from Posterior Predictive Distribution for DOAS Bayesian Models
+- [`as.array(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/as.array.doas.md)
+  : Convert DOAS Bayesian MCMC Draws to Array
+- [`as.matrix(`*`<doas>`*`)`](https://achazhardenberg.github.io/DOAS/reference/as.matrix.doas.md)
+  : Convert DOAS Bayesian MCMC Draws to Matrix
 
 ## Base Estimators
 
