@@ -13,3 +13,4 @@
 ^_pkgdown\.yml$
 ^\.github$
 ^ROADMAP\.md$
+^vignettes/.*\.html$

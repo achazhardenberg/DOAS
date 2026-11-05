@@ -418,6 +418,20 @@ doas <- function(
             sec_out$bayes_n_res$n_log_lik
         } else {
             NULL
+        },
+        mcmc_samples = if (method == "Bayes") {
+            list(
+                total_N = sec_out$total_N_draws_mat,
+                sector_N = sec_out$N_sec_draws_all,
+                mu_p1 = if (!is.null(sec_out$bayes_res)) sec_out$bayes_res$mu_p1_draws else NULL,
+                G_draws = if (!is.null(sec_out$bayes_res)) sec_out$bayes_res$G_draws else NULL,
+                p1_draws = if (!is.null(sec_out$bayes_res)) sec_out$bayes_res$p1_draws else NULL,
+                p1_all_draws = if (!is.null(sec_out$bayes_cov_res)) sec_out$bayes_cov_res$p1_all_draws else NULL,
+                p_beta = if (!is.null(sec_out$bayes_cov_res)) sec_out$bayes_cov_res$beta_draws else NULL,
+                n_gamma = if (!is.null(sec_out$bayes_n_res)) sec_out$bayes_n_res$gamma_draws else NULL
+            )
+        } else {
+            NULL
         }
     )
 

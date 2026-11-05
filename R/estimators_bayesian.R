@@ -932,6 +932,10 @@ compute_bayesian_sectors <- function(
         log_lik = log_lik_mat,
         n_model = n_model,
         bayes_n_res = bayes_n_res,
-        mean_gs_pool = mean_gs_pool
+        mean_gs_pool = mean_gs_pool,
+        N_sec_draws_all = N_sec_draws_all,
+        total_N_draws_mat = total_N_draws_mat,
+        bayes_res = bayes_res,
+        bayes_cov_res = bayes_cov_res
     )
 }

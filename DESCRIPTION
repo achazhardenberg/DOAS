@@ -1,7 +1,7 @@
 Package: DOAS
 Type: Package
 Title: Double Observer Adjusted Survey Framework
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: person("Achaz", "von Hardenberg", email = "achaz.hardenberg@unipv.it", role = c("aut", "cre"))
 Description: Estimates wildlife population abundance in gregarious and solitary
     species by combining standard block counts across survey sectors with
@@ -9,7 +9,8 @@ Description: Estimates wildlife population abundance in gregarious and solitary
     Supports both frequentist (Chapman and Zippin removal) and multi-chain
     Bayesian Markov Chain Monte Carlo (MCMC) estimators under independent and
     dependent double-observer protocols, with detection (p_formula) and abundance
-    (n_formula) covariate modeling, S3 prediction, and simulation-based power analysis.
+    (n_formula) covariate modeling, S3 prediction, simulation-based power analysis,
+    and posterior predictive model checking with bayesplot.
 License: GPL (>= 3)
 URL: https://achazhardenberg.github.io/DOAS/, https://github.com/achazhardenberg/DOAS
 BugReports: https://github.com/achazhardenberg/DOAS/issues
@@ -18,6 +19,8 @@ Imports:
     stats,
     tools
 Suggests: 
+    bayesplot,
+    ggplot2,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
