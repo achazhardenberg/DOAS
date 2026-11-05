@@ -33,6 +33,57 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.1.0" id="doas-110-2026-11-05">DOAS 1.1.0 (2026-11-05)<a class="anchor" aria-label="anchor" href="#doas-110-2026-11-05"></a></h2>
+<div class="section level3">
+<h3 id="minor-release-bayesian-diagnostics--posterior-predictive-checks-with-bayesplot-1-1-0">Minor Release: Bayesian Diagnostics &amp; Posterior Predictive Checks with <code>bayesplot</code>
+<a class="anchor" aria-label="anchor" href="#minor-release-bayesian-diagnostics--posterior-predictive-checks-with-bayesplot-1-1-0"></a></h3>
+<p>This release expands the Bayesian capabilities of <code>DOAS</code> by integrating seamlessly with the <a href="https://mc-stan.org/bayesplot/" class="external-link"><code>bayesplot</code></a> ecosystem for graphical Posterior Predictive Checks (PPC) and MCMC diagnostics.</p>
+<div class="section level4">
+<h4 id="posterior-predictive-simulation--model-checking-1-1-0">Posterior Predictive Simulation &amp; Model Checking<a class="anchor" aria-label="anchor" href="#posterior-predictive-simulation--model-checking-1-1-0"></a></h4>
+<ul><li>
+<strong><code><a href="../reference/posterior_predict.html">posterior_predict()</a></code> S3 Method</strong>:
+<ul><li>Simulates <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>×</mo><mi>M</mi></mrow><annotation encoding="application/x-tex">S \times M</annotation></semantics></math> replicated datasets (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mtext mathvariant="normal">rep</mtext></msub><annotation encoding="application/x-tex">y_{\text{rep}}</annotation></semantics></math>) from the posterior predictive distribution of a fitted <code>doas</code> Bayesian model (<code>method = "Bayes"</code>).</li>
+<li>Double-observer sectors simulate from the multinomial capture-recapture process conditional on posterior draws of latent abundance and detection probabilities; single-observer sectors simulate from a binomial detection process.</li>
+<li>Attaches observed survey counts as <code>attr(yrep, "y")</code>, making the output immediately compatible with all <code>bayesplot::ppc_*</code> functions.</li>
+<li>Supports target predictions for total unique counts (<code>type = "count"</code>), joint detections (<code>type = "both"</code>), and observer-specific tallies (<code>type = "obs1"</code>, <code>type = "obs2"</code>).</li>
+<li>Automatically handles unsurveyed sectors with <code>drop_unsurveyed = TRUE</code>.</li>
+</ul></li>
+<li>
+<strong><code><a href="../reference/pp_check.html">pp_check()</a></code> S3 Method</strong>:
+<ul><li>Implements a direct S3 method for <code><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">bayesplot::pp_check()</a></code> on <code>doas</code> objects.</li>
+<li>Supported graphical checks include:
+<ul><li>
+<code>"dens_overlay"</code>: Density overlay comparing empirical counts against multiple <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mtext mathvariant="normal">rep</mtext></msub><annotation encoding="application/x-tex">y_{\text{rep}}</annotation></semantics></math> draws.</li>
+<li>
+<code>"stat"</code>: Empirical distribution of any test statistic (e.g. <code>stat = "sd"</code>, <code>stat = "max"</code>, <code>stat = "mean"</code>) with the observed statistic marked.</li>
+<li>
+<code>"stat_2d"</code>: Bivariate scatterplot of two test statistics (e.g. <code>stat = c("mean", "sd")</code>).</li>
+<li>
+<code>"bars"</code>: Bar plot comparing observed vs. simulated count frequencies (ideal for inspecting zero-inflation and clumped distributions).</li>
+<li>
+<code>"intervals"</code>, <code>"ribbon"</code>, <code>"rootogram"</code>: Sector-level predictive intervals and rootograms.</li>
+</ul></li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="mcmc-diagnostic-arrays-1-1-0">MCMC Diagnostic Arrays<a class="anchor" aria-label="anchor" href="#mcmc-diagnostic-arrays-1-1-0"></a></h4>
+<ul><li>
+<strong><code><a href="https://rdrr.io/r/base/array.html" class="external-link">as.array()</a></code> &amp; <code><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix()</a></code> S3 Methods</strong>:
+<ul><li>Converts multi-chain MCMC draws into a 3D array of dimensions <code>[iterations, chains, parameters]</code> or a 2D matrix.</li>
+<li>Extracts chain-specific draws for total population abundance (<code>total_abundance</code>), mean detection probability (<code>p_hat</code>), detection covariate coefficients (<code>p_*</code>), and abundance covariate coefficients (<code>n_*</code>).</li>
+<li>Enables all <code>bayesplot::mcmc_*</code> diagnostics: <code>mcmc_trace()</code>, <code>mcmc_intervals()</code>, <code>mcmc_areas()</code>, and <code>mcmc_dens_overlay()</code>.</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="package-infrastructure--testing-1-1-0">Package Infrastructure &amp; Testing<a class="anchor" aria-label="anchor" href="#package-infrastructure--testing-1-1-0"></a></h4>
+<ul><li>Added <code>bayesplot</code> and <code>ggplot2</code> to <code>Suggests:</code> in <code>DESCRIPTION</code>.</li>
+<li>Updated <code>_pkgdown.yml</code> reference index to include Bayesian diagnostic methods under a dedicated “Model Selection &amp; Diagnostics” section.</li>
+<li>Expanded the unit test suite to 164 passing tests covering all new S3 generics, argument checks, dependent/independent protocols, and error handling.</li>
+<li>Verified clean <code>R CMD check</code> with zero errors, zero warnings, zero notes.</li>
+</ul><hr></div>
+</div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.0" id="doas-100-2026-11-04">DOAS 1.0.0 (2026-11-04)<a class="anchor" aria-label="anchor" href="#doas-100-2026-11-04"></a></h2>
 <div class="section level3">
 <h3 id="major-release-the-complete-doas-framework-1-0-0">Major Release: The Complete DOAS Framework<a class="anchor" aria-label="anchor" href="#major-release-the-complete-doas-framework-1-0-0"></a></h3>
