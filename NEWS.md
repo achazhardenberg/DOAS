@@ -1,3 +1,40 @@
+# DOAS 1.1.0 (2026-11-05)
+
+## Minor Release: Bayesian Diagnostics & Posterior Predictive Checks with `bayesplot`
+
+This release expands the Bayesian capabilities of `DOAS` by integrating seamlessly with the [`bayesplot`](https://mc-stan.org/bayesplot/) ecosystem for graphical Posterior Predictive Checks (PPC) and MCMC diagnostics.
+
+### Posterior Predictive Simulation & Model Checking
+* **`posterior_predict()` S3 Method**:
+  * Simulates $S \times M$ replicated datasets ($y_{\text{rep}}$) from the posterior predictive distribution of a fitted `doas` Bayesian model (`method = "Bayes"`).
+  * Double-observer sectors simulate from the multinomial capture-recapture process conditional on posterior draws of latent abundance and detection probabilities; single-observer sectors simulate from a binomial detection process.
+  * Attaches observed survey counts as `attr(yrep, "y")`, making the output immediately compatible with all `bayesplot::ppc_*` functions.
+  * Supports target predictions for total unique counts (`type = "count"`), joint detections (`type = "both"`), and observer-specific tallies (`type = "obs1"`, `type = "obs2"`).
+  * Automatically handles unsurveyed sectors with `drop_unsurveyed = TRUE`.
+
+* **`pp_check()` S3 Method**:
+  * Implements a direct S3 method for `bayesplot::pp_check()` on `doas` objects.
+  * Supported graphical checks include:
+    * `"dens_overlay"`: Density overlay comparing empirical counts against multiple $y_{\text{rep}}$ draws.
+    * `"stat"`: Empirical distribution of any test statistic (e.g. `stat = "sd"`, `stat = "max"`, `stat = "mean"`) with the observed statistic marked.
+    * `"stat_2d"`: Bivariate scatterplot of two test statistics (e.g. `stat = c("mean", "sd")`).
+    * `"bars"`: Bar plot comparing observed vs. simulated count frequencies (ideal for inspecting zero-inflation and clumped distributions).
+    * `"intervals"`, `"ribbon"`, `"rootogram"`: Sector-level predictive intervals and rootograms.
+
+### MCMC Diagnostic Arrays
+* **`as.array()` & `as.matrix()` S3 Methods**:
+  * Converts multi-chain MCMC draws into a 3D array of dimensions `[iterations, chains, parameters]` or a 2D matrix.
+  * Extracts chain-specific draws for total population abundance (`total_abundance`), mean detection probability (`p_hat`), detection covariate coefficients (`p_*`), and abundance covariate coefficients (`n_*`).
+  * Enables all `bayesplot::mcmc_*` diagnostics: `mcmc_trace()`, `mcmc_intervals()`, `mcmc_areas()`, and `mcmc_dens_overlay()`.
+
+### Package Infrastructure & Testing
+* Added `bayesplot` and `ggplot2` to `Suggests:` in `DESCRIPTION`.
+* Updated `_pkgdown.yml` reference index to include Bayesian diagnostic methods under a dedicated "Model Selection & Diagnostics" section.
+* Expanded the unit test suite to 164 passing tests covering all new S3 generics, argument checks, dependent/independent protocols, and error handling.
+* Verified clean `R CMD check` with zero errors, zero warnings, zero notes.
+
+---
+
 # DOAS 1.0.0 (2026-11-04)
 
 ## Major Release: The Complete DOAS Framework
